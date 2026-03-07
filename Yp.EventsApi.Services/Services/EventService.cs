@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Caching.Memory;
 using Yp.EventsApi.Services.Entities;
 
 namespace Yp.EventsApi.Services.Services;
@@ -22,28 +23,32 @@ public class EventService: IEventService
         return _events.AsEnumerable();
     }
     
-    public Event? GetById(int id)
+    public Event? GetById(Guid id)
     {
         return _events.Find(e => e.Id == id);
     }
 
     public Event Create(Event newEvent)
     {
-        newEvent.Id = _events.Max(e => e.Id) + 1;
+        newEvent.Id = Guid.NewGuid();
         
         _events.Add(newEvent);
         return newEvent;
     }
 
-    public Event Update(Event updatedEvent)
+    public Event? Update(Event updatedEvent)
     {
         var updateAtIndex = _events.FindIndex(e => e.Id == updatedEvent.Id);
-        _events[updateAtIndex] = updatedEvent;
+        if (updateAtIndex != -1)
+        {
+            _events[updateAtIndex] = updatedEvent;
+            return updatedEvent;
+        }
 
-        return updatedEvent;
+        return null;
     }
 
-    public void Delete(int eventId)
+    public void Delete(Guid eventId)
     {
         var eventToDelete = _events.Find(e => e.Id == eventId);
 

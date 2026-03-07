@@ -13,7 +13,7 @@ public interface IEventService
     /// Получить событие по идентификатору
     /// </summary>
     /// <param name="eventId">Идентификатор</param>
-    Event? GetById(int eventId);
+    Event? GetById(Guid eventId);
     
     /// <summary>
     /// Создать новое событие
@@ -31,5 +31,5 @@ public interface IEventService
     /// Удалить событие
     /// </summary>
     /// <param name="eventId"></param>
-    void Delete(int eventId);
+    void Delete(Guid eventId);
 }

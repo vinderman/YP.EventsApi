@@ -2,7 +2,7 @@ namespace Yp.EventsApi.Services.Entities;
 
 public class Event
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     public required string Title { get; set; }
     public string? Description { get; set; }
     public required DateTime StartAt { get; set; }

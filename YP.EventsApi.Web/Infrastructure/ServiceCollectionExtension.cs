@@ -7,7 +7,8 @@ public static class ServiceCollectionExtension
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        services.AddScoped<IEventService, EventService>();
+        // Регистрируем как синглтон, чтобы хранить данные в инстансе сервиса. При переходе на внешний источник данных переделать на Scoped
+        services.AddSingleton<IEventService, EventService>();
         return services;
     }
 

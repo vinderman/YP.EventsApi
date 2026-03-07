@@ -1,6 +1,6 @@
 using AutoMapper;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using YP.EventApi.Web.Contracts;
 using Yp.EventsApi.Services.Dto;
 using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Services;
@@ -24,6 +24,7 @@ public class EventsController: ControllerBase
     /// Получить все события
     /// </summary>
     [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<EventDto>), StatusCodes.Status200OK)]
     public ActionResult<IEnumerable<EventDto>> GetEvents()
     {
         var events = _eventService.GetAll();
@@ -35,9 +36,16 @@ public class EventsController: ControllerBase
     /// </summary>
     /// <param name="id"></param>
     [HttpGet("{id}")]
-    public ActionResult<EventDto> GetEventById(int id)
+    [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<EventDto> GetEventById(Guid id)
     {
         var eventById = _eventService.GetById(id);
+
+        if (eventById == null)
+        {
+            return NotFound();
+        }
         
         return Ok(_mapper.Map<EventDto>(eventById));
     }
@@ -45,15 +53,17 @@ public class EventsController: ControllerBase
     /// <summary>
     /// Создать событие
     /// </summary>
-    /// <returns></returns>
+    /// /// <param name="eventCreateDto">Модель создания события</param>
     [HttpPost]
+    [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public ActionResult<EventDto> CreateEvent([FromBody] EventCreateDto eventCreateDto)
     {
-        if (eventCreateDto.EndAt < eventCreateDto.StartAt)
+        if (eventCreateDto is { EndAt: not null, StartAt: not null } && eventCreateDto.EndAt < eventCreateDto.StartAt)
         {
             ModelState.AddModelError("EndAt", "Дата окончания события не может быть позднее даты начала");
             
-            return BadRequest(ModelState);
+            return ValidationProblem(ModelState);
         }
         
         
@@ -62,17 +72,36 @@ public class EventsController: ControllerBase
         return Ok(_mapper.Map<EventDto>(createdEvent));
     }
 
-
+    /// <summary>
+    /// Обновить событие
+    /// </summary>
+    /// <param name="eventDto">Модель события</param>
     [HttpPut("{id}")]
-    public ActionResult<EventDto> UpdateEvent(int id, [FromBody] EventDto eventDto)
+    [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<EventDto> UpdateEvent([FromRoute] Guid id, [FromBody] EventCreateDto eventDto)
     {
-        var newEvent = _eventService.Update(_mapper.Map<Event>(eventDto));
+        var eventToUpdate = _mapper.Map<Event>(eventDto);
+        eventToUpdate.Id = id;
         
-        return Ok(_mapper.Map<EventDto>(newEvent));
+        var createdEvent = _eventService.Update(eventToUpdate);
+        if (createdEvent == null)
+        {
+           return NotFound();
+        }
+        
+        return Ok(_mapper.Map<EventDto>(createdEvent));
     }
-
+    
+    /// <summary>
+    /// Удалить событие
+    /// </summary>
+    /// <param name="id"></param>
     [HttpDelete("{id}")]
-    public IActionResult DeleteEvent(int id)
+    [ProducesResponseType(typeof(IActionResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public IActionResult DeleteEvent(Guid id)
     {
         try
         {
@@ -83,7 +112,7 @@ public class EventsController: ControllerBase
         {
             // TODO: добавить типизированную ошибку для ситуации, когда сущность не найдена
             // Пока считаем, что может быть только 404 и пробрасываем ее
-            return NotFound("Событие не найдено");
+            return NotFound();
         }
     }
 }
