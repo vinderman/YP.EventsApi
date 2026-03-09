@@ -8,7 +8,7 @@ using Yp.EventsApi.Services.Services;
 namespace YP.EventApi.Web.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class EventsController: ControllerBase
 {
     private readonly IEventService _eventService;
@@ -55,21 +55,20 @@ public class EventsController: ControllerBase
     /// </summary>
     /// /// <param name="eventCreateDto">Модель создания события</param>
     [HttpPost]
-    [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(EventDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public ActionResult<EventDto> CreateEvent([FromBody] EventCreateDto eventCreateDto)
     {
-        if (eventCreateDto is { EndAt: not null, StartAt: not null } && eventCreateDto.EndAt < eventCreateDto.StartAt)
+        var validateResult = ValidateEventDates(eventCreateDto);
+        if (validateResult != null)
         {
-            ModelState.AddModelError("EndAt", "Дата окончания события не может быть позднее даты начала");
-            
-            return ValidationProblem(ModelState);
+            return validateResult;
         }
         
-        
         var createdEvent = _eventService.Create(_mapper.Map<Event>(eventCreateDto));
-        
-        return Ok(_mapper.Map<EventDto>(createdEvent));
+
+        var uri = Url.Action(nameof(GetEventById), new { id = createdEvent.Id });
+        return Created(uri, _mapper.Map<EventDto>(createdEvent));
     }
 
     /// <summary>
@@ -82,6 +81,12 @@ public class EventsController: ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public ActionResult<EventDto> UpdateEvent([FromRoute] Guid id, [FromBody] EventCreateDto eventDto)
     {
+        var validateResult = ValidateEventDates(eventDto);
+        if (validateResult != null)
+        {
+            return validateResult;
+        }
+        
         var eventToUpdate = _mapper.Map<Event>(eventDto);
         eventToUpdate.Id = id;
         
@@ -99,20 +104,31 @@ public class EventsController: ControllerBase
     /// </summary>
     /// <param name="id"></param>
     [HttpDelete("{id}")]
-    [ProducesResponseType(typeof(IActionResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(IActionResult), StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public IActionResult DeleteEvent(Guid id)
     {
-        try
-        {
-            _eventService.Delete(id);
+        var isDeleted = _eventService.Delete(id); 
+        if (isDeleted) 
+        { 
             return NoContent();
         }
-        catch (Exception e)
+        
+        // TODO: добавить типизированную ошибку для ситуации, когда сущность не найдена
+        // Пока считаем, что может быть только 404 и пробрасываем ее
+        return NotFound();
+    }
+
+
+    private ActionResult? ValidateEventDates(EventCreateDto eventCreateDto)
+    {
+        if (eventCreateDto is { EndAt: not null, StartAt: not null } && eventCreateDto.EndAt < eventCreateDto.StartAt)
         {
-            // TODO: добавить типизированную ошибку для ситуации, когда сущность не найдена
-            // Пока считаем, что может быть только 404 и пробрасываем ее
-            return NotFound();
+            ModelState.AddModelError("EndAt", "Дата окончания события не может быть раньше даты начала");
+            
+            return ValidationProblem(ModelState);
         }
+
+        return null;
     }
 }

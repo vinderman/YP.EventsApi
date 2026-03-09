@@ -1,5 +1,4 @@
 using AutoMapper;
-using Microsoft.Extensions.Caching.Memory;
 using Yp.EventsApi.Services.Entities;
 
 namespace Yp.EventsApi.Services.Services;
@@ -48,15 +47,17 @@ public class EventService: IEventService
         return null;
     }
 
-    public void Delete(Guid eventId)
+    public bool Delete(Guid eventId)
     {
         var eventToDelete = _events.Find(e => e.Id == eventId);
 
         if (eventToDelete == null)
         {
-            throw new Exception("Событие не найдено");
+            return false;
         }
         
         _events.Remove(eventToDelete);
+
+        return true;
     }
 }

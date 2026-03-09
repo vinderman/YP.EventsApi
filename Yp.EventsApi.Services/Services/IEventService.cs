@@ -31,5 +31,5 @@ public interface IEventService
     /// Удалить событие
     /// </summary>
     /// <param name="eventId"></param>
-    void Delete(Guid eventId);
+    bool Delete(Guid eventId);
 }
