@@ -1,4 +1,7 @@
 using System.Reflection;
+using FluentValidation;
+using YP.EventApi.Web.Contracts;
+using YP.EventApi.Web.Validators;
 using Yp.EventsApi.Services.Services;
 
 namespace YP.EventApi.Web.Infrastructure;
@@ -15,6 +18,7 @@ public static class ServiceCollectionExtension
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
+        services.AddScoped<IValidator<EventCreateDto>, EventCreateDtoValidator>();  
 
         return services;
     }

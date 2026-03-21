@@ -1,5 +1,6 @@
 using AutoMapper;
 using Yp.EventsApi.Services.Entities;
+using Yp.EventsApi.Services.Exceptions;
 
 namespace Yp.EventsApi.Services.Services;
 
@@ -35,29 +36,28 @@ public class EventService: IEventService
         return newEvent;
     }
 
-    public Event? Update(Event updatedEvent)
+    public Event Update(Event updatedEvent)
     {
         var updateAtIndex = _events.FindIndex(e => e.Id == updatedEvent.Id);
-        if (updateAtIndex != -1)
-        {
-            _events[updateAtIndex] = updatedEvent;
-            return updatedEvent;
-        }
 
-        return null;
+        if (updateAtIndex == -1)
+        {
+            throw new EntityNotFoundException($"Не удалось обновить событие. Событие с идентификатором {updatedEvent.Id} не найдено");
+        }
+       
+        _events[updateAtIndex] = updatedEvent; 
+        return updatedEvent;
     }
 
-    public bool Delete(Guid eventId)
+    public void Delete(Guid eventId)
     {
         var eventToDelete = _events.Find(e => e.Id == eventId);
 
         if (eventToDelete == null)
         {
-            return false;
+            throw new EntityNotFoundException($"Не удалось удалить событие. Событие с идентификатором {eventId} не найдено");
         }
         
         _events.Remove(eventToDelete);
-
-        return true;
     }
 }

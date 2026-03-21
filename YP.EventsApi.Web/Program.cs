@@ -1,4 +1,5 @@
 using YP.EventApi.Web.Infrastructure;
+using YP.EventApi.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +18,8 @@ if (builder.Environment.IsDevelopment())
 } 
 
 var app = builder.Build();
+
+app.UseMiddleware<ErrorHandlerMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

@@ -25,11 +25,11 @@ public interface IEventService
     /// Обновить событие
     /// </summary>
     /// <param name="updatedEvent"></param>
-    Event? Update(Event updatedEvent);
+    Event Update(Event updatedEvent);
     
     /// <summary>
     /// Удалить событие
     /// </summary>
     /// <param name="eventId"></param>
-    bool Delete(Guid eventId);
+    void Delete(Guid eventId);
 }

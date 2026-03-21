@@ -1,4 +1,6 @@
 using AutoMapper;
+using FluentValidation;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using YP.EventApi.Web.Contracts;
 using Yp.EventsApi.Services.Dto;
@@ -13,11 +15,13 @@ public class EventsController: ControllerBase
 {
     private readonly IEventService _eventService;
     private readonly IMapper _mapper;
+    private readonly IValidator<EventCreateDto> _eventCreateDtoValidator;
     
-    public EventsController(IEventService eventService, IMapper mapper)
+    public EventsController(IEventService eventService, IMapper mapper, IValidator<EventCreateDto> eventCreateDtoValidator)
     {
         _eventService = eventService;
         _mapper = mapper;
+        _eventCreateDtoValidator = eventCreateDtoValidator;
     }
 
     /// <summary>
@@ -59,10 +63,10 @@ public class EventsController: ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public ActionResult<EventDto> CreateEvent([FromBody] EventCreateDto eventCreateDto)
     {
-        var validateResult = ValidateEventDates(eventCreateDto);
-        if (validateResult != null)
+        var validateResult = _eventCreateDtoValidator.Validate(eventCreateDto);
+        if (!validateResult.IsValid)
         {
-            return validateResult;
+            throw new ValidationException("Произошла ошибка", validateResult.Errors);
         }
         
         var createdEvent = _eventService.Create(_mapper.Map<Event>(eventCreateDto));
@@ -81,20 +85,16 @@ public class EventsController: ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public ActionResult<EventDto> UpdateEvent([FromRoute] Guid id, [FromBody] EventCreateDto eventDto)
     {
-        var validateResult = ValidateEventDates(eventDto);
-        if (validateResult != null)
+        var validateResult = _eventCreateDtoValidator.Validate(eventDto);
+        if (!validateResult.IsValid)
         {
-            return validateResult;
+            throw new ValidationException("Произошла ошибка", validateResult.Errors);
         }
         
         var eventToUpdate = _mapper.Map<Event>(eventDto);
         eventToUpdate.Id = id;
         
         var createdEvent = _eventService.Update(eventToUpdate);
-        if (createdEvent == null)
-        {
-           return NotFound();
-        }
         
         return Ok(_mapper.Map<EventDto>(createdEvent));
     }
@@ -108,27 +108,8 @@ public class EventsController: ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public IActionResult DeleteEvent(Guid id)
     {
-        var isDeleted = _eventService.Delete(id); 
-        if (isDeleted) 
-        { 
-            return NoContent();
-        }
+        _eventService.Delete(id); 
         
-        // TODO: добавить типизированную ошибку для ситуации, когда сущность не найдена
-        // Пока считаем, что может быть только 404 и пробрасываем ее
-        return NotFound();
-    }
-
-
-    private ActionResult? ValidateEventDates(EventCreateDto eventCreateDto)
-    {
-        if (eventCreateDto is { EndAt: not null, StartAt: not null } && eventCreateDto.EndAt < eventCreateDto.StartAt)
-        {
-            ModelState.AddModelError("EndAt", "Дата окончания события не может быть раньше даты начала");
-            
-            return ValidationProblem(ModelState);
-        }
-
-        return null;
+        return NoContent();
     }
 }
