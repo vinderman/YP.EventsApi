@@ -1,7 +1,6 @@
 using AutoMapper;
-using YP.EventApi.Web.Contracts;
-using Yp.EventsApi.Services.Dto;
 using Yp.EventsApi.Services.Entities;
+using Yp.EventsApi.Shared.Contracts;
 
 namespace YP.EventApi.Web.Infrastructure;
 

@@ -1,6 +1,8 @@
 using AutoMapper;
 using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Exceptions;
+using Yp.EventsApi.Shared.Contracts;
+using Yp.EventsApi.Shared.Models;
 
 namespace Yp.EventsApi.Services.Services;
 
@@ -10,7 +12,14 @@ namespace Yp.EventsApi.Services.Services;
 public class EventService: IEventService
 {
     private readonly IMapper _mapper;
-    private List<Event> _events = new ();
+    private List<Event> _events = new()
+    {
+        new Event { Id = Guid.NewGuid(), Title = "Тренировка по боксу", StartAt = new DateTime(2025, 03, 20 ), EndAt = new DateTime(2025, 04, 20) },
+        new Event { Id = Guid.NewGuid(), Title = "День рождения", StartAt = new DateTime(2024, 03, 20 ), EndAt = new DateTime(2026, 03, 20) },
+        new Event { Id = Guid.NewGuid(), Title = "Корпоратив", StartAt = new DateTime(2023, 03, 20 ), EndAt = new DateTime(2024, 03, 20) },
+        new Event { Id = Guid.NewGuid(), Title = "Поездка на море", StartAt = new DateTime(2026, 04, 20 ), EndAt = new DateTime(2026, 05, 13) },
+        new Event { Id = Guid.NewGuid(), Title = "Свадьба", StartAt = new DateTime(2026, 06, 10 ), EndAt = new DateTime(2026, 06, 10) }
+    };
 
     public EventService(IMapper mapper)
     {
@@ -18,35 +27,69 @@ public class EventService: IEventService
     }
 
     
-    public IEnumerable<Event> GetAll()
+    public PaginatedResult<EventDto> GetAll(EventFilter filter)
     {
-        return _events.AsEnumerable();
+        var query = _events.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(filter.Title))
+        {
+            var title = filter.Title.ToLower();
+            query = query.Where(e => e.Title.ToLower().Contains(title));
+        }
+
+        if (filter.From.HasValue)
+        {
+            query = query.Where(e => e.StartAt >= filter.From);
+        }
+
+        if (filter.To.HasValue)
+        {
+            query = query.Where(e => e.EndAt <= filter.To);
+        }
+        
+        var totalCount = query.Count();
+        
+        var events = query.Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize).ToList();
+        
+        return new PaginatedResult<EventDto>
+        {
+            Total = totalCount,
+            CurrentPage = filter.Page,
+            Items = _mapper.Map<List<EventDto>>(events),
+            PageSize = filter.PageSize
+            
+        };
     }
     
-    public Event? GetById(Guid id)
+    public EventDto? GetById(Guid id)
     {
-        return _events.Find(e => e.Id == id);
+        return _mapper.Map<EventDto>(_events.Find(e => e.Id == id));
     }
 
-    public Event Create(Event newEvent)
+    public EventDto Create(EventCreateDto eventCreateDto)
     {
+        var newEvent = _mapper.Map<Event>(eventCreateDto);
         newEvent.Id = Guid.NewGuid();
         
         _events.Add(newEvent);
-        return newEvent;
+        return _mapper.Map<EventDto>(newEvent);
     }
 
-    public Event Update(Event updatedEvent)
+    public EventDto Update(Guid eventId, EventCreateDto eventCreateDto)
     {
-        var updateAtIndex = _events.FindIndex(e => e.Id == updatedEvent.Id);
+        var updateAtIndex = _events.FindIndex(e => e.Id == eventId);
 
         if (updateAtIndex == -1)
         {
-            throw new EntityNotFoundException($"Не удалось обновить событие. Событие с идентификатором {updatedEvent.Id} не найдено");
+            throw new EntityNotFoundException($"Не удалось обновить событие. Событие с идентификатором {eventId} не найдено");
         }
-       
-        _events[updateAtIndex] = updatedEvent; 
-        return updatedEvent;
+        
+        var updatedEvent = _mapper.Map<Event>(eventCreateDto);
+        updatedEvent.Id = eventId;
+
+
+        _events[updateAtIndex] = updatedEvent;
+        return _mapper.Map<EventDto>(updatedEvent);
     }
 
     public void Delete(Guid eventId)

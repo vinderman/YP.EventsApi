@@ -1,11 +1,10 @@
 using AutoMapper;
 using FluentValidation;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using YP.EventApi.Web.Contracts;
-using Yp.EventsApi.Services.Dto;
 using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Shared.Contracts;
+using Yp.EventsApi.Shared.Models;
 
 namespace YP.EventApi.Web.Controllers;
 
@@ -14,13 +13,11 @@ namespace YP.EventApi.Web.Controllers;
 public class EventsController: ControllerBase
 {
     private readonly IEventService _eventService;
-    private readonly IMapper _mapper;
     private readonly IValidator<EventCreateDto> _eventCreateDtoValidator;
     
-    public EventsController(IEventService eventService, IMapper mapper, IValidator<EventCreateDto> eventCreateDtoValidator)
+    public EventsController(IEventService eventService, IValidator<EventCreateDto> eventCreateDtoValidator)
     {
         _eventService = eventService;
-        _mapper = mapper;
         _eventCreateDtoValidator = eventCreateDtoValidator;
     }
 
@@ -28,11 +25,12 @@ public class EventsController: ControllerBase
     /// Получить все события
     /// </summary>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<EventDto>), StatusCodes.Status200OK)]
-    public ActionResult<IEnumerable<EventDto>> GetEvents()
+    [ProducesResponseType(typeof(PaginatedResult<EventDto>), StatusCodes.Status200OK)]
+    public ActionResult<IEnumerable<EventDto>> GetEvents([FromQuery] EventFilter filter)
     {
-        var events = _eventService.GetAll();
-        return Ok(_mapper.Map<IEnumerable<EventDto>>(events));
+        var events = _eventService.GetAll(filter);
+        
+        return Ok(events);
     }
 
     /// <summary>
@@ -51,7 +49,7 @@ public class EventsController: ControllerBase
             return NotFound();
         }
         
-        return Ok(_mapper.Map<EventDto>(eventById));
+        return Ok(eventById);
     }
     
     /// <summary>
@@ -69,34 +67,32 @@ public class EventsController: ControllerBase
             throw new ValidationException("Произошла ошибка", validateResult.Errors);
         }
         
-        var createdEvent = _eventService.Create(_mapper.Map<Event>(eventCreateDto));
-
+        var createdEvent = _eventService.Create(eventCreateDto);
         var uri = Url.Action(nameof(GetEventById), new { id = createdEvent.Id });
-        return Created(uri, _mapper.Map<EventDto>(createdEvent));
+        
+        return Created(uri, createdEvent);
     }
 
     /// <summary>
     /// Обновить событие
     /// </summary>
-    /// <param name="eventDto">Модель события</param>
+    /// <param name="id"></param>
+    /// <param name="eventCreateDto">Модель события</param>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<EventDto> UpdateEvent([FromRoute] Guid id, [FromBody] EventCreateDto eventDto)
+    public ActionResult<EventDto> UpdateEvent([FromRoute] Guid id, [FromBody] EventCreateDto eventCreateDto)
     {
-        var validateResult = _eventCreateDtoValidator.Validate(eventDto);
+        var validateResult = _eventCreateDtoValidator.Validate(eventCreateDto);
         if (!validateResult.IsValid)
         {
             throw new ValidationException("Произошла ошибка", validateResult.Errors);
         }
         
-        var eventToUpdate = _mapper.Map<Event>(eventDto);
-        eventToUpdate.Id = id;
+        var createdEvent = _eventService.Update(id, eventCreateDto);
         
-        var createdEvent = _eventService.Update(eventToUpdate);
-        
-        return Ok(_mapper.Map<EventDto>(createdEvent));
+        return Ok(createdEvent);
     }
     
     /// <summary>

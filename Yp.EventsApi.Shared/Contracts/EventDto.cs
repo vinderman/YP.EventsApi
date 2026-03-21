@@ -1,6 +1,4 @@
-using System.ComponentModel.DataAnnotations;
-
-namespace Yp.EventsApi.Services.Dto;
+namespace Yp.EventsApi.Shared.Contracts;
 
 public class EventDto
 {

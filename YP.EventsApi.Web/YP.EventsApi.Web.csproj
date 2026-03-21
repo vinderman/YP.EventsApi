@@ -15,6 +15,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Yp.EventsApi.Services\Yp.EventsApi.Services.csproj" />
+      <ProjectReference Include="..\Yp.EventsApi.Shared\Yp.EventsApi.Shared.csproj" />
     </ItemGroup>
 
 </Project>

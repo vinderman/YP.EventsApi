@@ -1,5 +1,5 @@
 using FluentValidation;
-using YP.EventApi.Web.Contracts;
+using Yp.EventsApi.Shared.Contracts;
 
 namespace YP.EventApi.Web.Validators;
 
