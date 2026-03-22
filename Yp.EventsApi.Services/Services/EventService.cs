@@ -12,17 +12,19 @@ namespace Yp.EventsApi.Services.Services;
 public class EventService: IEventService
 {
     private readonly IMapper _mapper;
-    private List<Event> _events = new()
-    {
-        new Event { Id = Guid.NewGuid(), Title = "Тренировка по боксу", StartAt = new DateTime(2025, 03, 20 ), EndAt = new DateTime(2025, 04, 20) },
-        new Event { Id = Guid.NewGuid(), Title = "День рождения", StartAt = new DateTime(2024, 03, 20 ), EndAt = new DateTime(2026, 03, 20) },
-        new Event { Id = Guid.NewGuid(), Title = "Корпоратив", StartAt = new DateTime(2023, 03, 20 ), EndAt = new DateTime(2024, 03, 20) },
-        new Event { Id = Guid.NewGuid(), Title = "Поездка на море", StartAt = new DateTime(2026, 04, 20 ), EndAt = new DateTime(2026, 05, 13) },
-        new Event { Id = Guid.NewGuid(), Title = "Свадьба", StartAt = new DateTime(2026, 06, 10 ), EndAt = new DateTime(2026, 06, 10) }
-    };
+    private List<Event> _events;
 
     public EventService(IMapper mapper)
     {
+        _events = new()
+        {
+            new Event { Id = Guid.NewGuid(), Title = "Тренировка по боксу", StartAt = new DateTime(2025, 03, 20 ), EndAt = new DateTime(2025, 04, 20) },
+            new Event { Id = Guid.NewGuid(), Title = "День рождения", StartAt = new DateTime(2024, 03, 20 ), EndAt = new DateTime(2026, 03, 20) },
+            new Event { Id = Guid.NewGuid(), Title = "Корпоратив", StartAt = new DateTime(2023, 03, 20 ), EndAt = new DateTime(2024, 03, 20) },
+            new Event { Id = Guid.NewGuid(), Title = "Поездка на море", StartAt = new DateTime(2026, 04, 20 ), EndAt = new DateTime(2026, 05, 13) },
+            new Event { Id = Guid.NewGuid(), Title = "Свадьба", StartAt = new DateTime(2026, 06, 10 ), EndAt = new DateTime(2026, 06, 10) }
+        };
+        
         _mapper = mapper;
     }
 
@@ -61,9 +63,16 @@ public class EventService: IEventService
         };
     }
     
-    public EventDto? GetById(Guid id)
+    public EventDto GetById(Guid id)
     {
-        return _mapper.Map<EventDto>(_events.Find(e => e.Id == id));
+        var result = _events.FirstOrDefault(e => e.Id == id);
+
+        if (result == null)
+        {
+            throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {id} не найдено");
+        }
+        
+        return _mapper.Map<EventDto>(result);
     }
 
     public EventDto Create(EventCreateDto eventCreateDto)

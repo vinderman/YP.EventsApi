@@ -43,12 +43,6 @@ public class EventsController: ControllerBase
     public ActionResult<EventDto> GetEventById(Guid id)
     {
         var eventById = _eventService.GetById(id);
-
-        if (eventById == null)
-        {
-            return NotFound();
-        }
-        
         return Ok(eventById);
     }
     

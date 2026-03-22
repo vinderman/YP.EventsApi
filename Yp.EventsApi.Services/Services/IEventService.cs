@@ -15,7 +15,7 @@ public interface IEventService
     /// Получить событие по идентификатору
     /// </summary>
     /// <param name="eventId">Идентификатор</param>
-    EventDto? GetById(Guid eventId);
+    EventDto GetById(Guid eventId);
     
     /// <summary>
     /// Создать новое событие
