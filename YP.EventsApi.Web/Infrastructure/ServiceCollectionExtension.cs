@@ -1,5 +1,8 @@
 using System.Reflection;
+using FluentValidation;
+using YP.EventApi.Web.Validators;
 using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Shared.Contracts;
 
 namespace YP.EventApi.Web.Infrastructure;
 
@@ -15,6 +18,7 @@ public static class ServiceCollectionExtension
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
     {
         services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
+        services.AddScoped<IValidator<EventCreateDto>, EventCreateDtoValidator>();
 
         return services;
     }
@@ -25,10 +29,10 @@ public static class ServiceCollectionExtension
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
         {   
-            // Путь к XML-файлу с документацией
-            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-            options.IncludeXmlComments(xmlPath);
+            var xmlDocumentationFiles = Directory.GetFiles(AppContext.BaseDirectory, "*.xml", SearchOption.TopDirectoryOnly).ToList();
+            xmlDocumentationFiles.ForEach(xmlDocumentationFile => options.IncludeXmlComments(xmlDocumentationFile));
+            
+            options.SupportNonNullableReferenceTypes();
         });
 
         return services;

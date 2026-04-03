@@ -9,11 +9,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
+        <PackageReference Include="FluentValidation" Version="12.1.1" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Yp.EventsApi.Services\Yp.EventsApi.Services.csproj" />
+      <ProjectReference Include="..\Yp.EventsApi.Shared\Yp.EventsApi.Shared.csproj" />
     </ItemGroup>
 
 </Project>

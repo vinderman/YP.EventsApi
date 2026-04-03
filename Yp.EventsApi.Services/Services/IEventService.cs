@@ -1,4 +1,6 @@
 using Yp.EventsApi.Services.Entities;
+using Yp.EventsApi.Shared.Contracts;
+using Yp.EventsApi.Shared.Models;
 
 namespace Yp.EventsApi.Services.Services;
 
@@ -7,29 +9,30 @@ public interface IEventService
     /// <summary>
     /// Получить все события
     /// </summary>
-    IEnumerable<Event> GetAll();
+    PaginatedResult<EventDto> GetAll(EventFilter filter);
     
     /// <summary>
     /// Получить событие по идентификатору
     /// </summary>
     /// <param name="eventId">Идентификатор</param>
-    Event? GetById(Guid eventId);
+    EventDto GetById(Guid eventId);
     
     /// <summary>
     /// Создать новое событие
     /// </summary>
     /// <param name="newEvent"></param>
-    Event Create(Event newEvent);
+    EventDto Create(EventCreateDto newEvent);
     
     /// <summary>
     /// Обновить событие
     /// </summary>
-    /// <param name="updatedEvent"></param>
-    Event? Update(Event updatedEvent);
+    /// <param name="eventId"></param>
+    /// <param name="eventToUpdate"></param>
+    EventDto Update(Guid eventId, EventCreateDto eventToUpdate);
     
     /// <summary>
     /// Удалить событие
     /// </summary>
     /// <param name="eventId"></param>
-    bool Delete(Guid eventId);
+    void Delete(Guid eventId);
 }
