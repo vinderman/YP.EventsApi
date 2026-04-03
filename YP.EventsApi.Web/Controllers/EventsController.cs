@@ -1,8 +1,7 @@
-using AutoMapper;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Services.Services.BookingService;
+using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Contracts;
 using Yp.EventsApi.Shared.Models;
 
@@ -14,11 +13,13 @@ public class EventsController: ControllerBase
 {
     private readonly IEventService _eventService;
     private readonly IValidator<EventCreateDto> _eventCreateDtoValidator;
+    private readonly IBookingService _bookingService;
     
-    public EventsController(IEventService eventService, IValidator<EventCreateDto> eventCreateDtoValidator)
+    public EventsController(IEventService eventService, IValidator<EventCreateDto> eventCreateDtoValidator, IBookingService bookingService)
     {
         _eventService = eventService;
         _eventCreateDtoValidator = eventCreateDtoValidator;
+        _bookingService = bookingService;
     }
 
     /// <summary>
@@ -101,5 +102,15 @@ public class EventsController: ControllerBase
         _eventService.Delete(id); 
         
         return NoContent();
+    }
+
+    [HttpPost("{id}/booking")]
+    [ProducesResponseType(typeof(ActionResult<BookingDto>), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BookingDto>> BookEvent([FromRoute] Guid id, CancellationToken ct)
+    {
+        var existingEvent = _eventService.GetById(id);
+        var booking = await _bookingService.CreateBookingAsync(existingEvent.Id, ct);
+        return AcceptedAtAction(actionName: nameof(BookingsController.GetBookingById), controllerName: "Bookings", routeValues: new { id = booking.Id }, value: booking);
     }
 }

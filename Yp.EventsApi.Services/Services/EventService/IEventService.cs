@@ -1,8 +1,7 @@
-using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Shared.Contracts;
 using Yp.EventsApi.Shared.Models;
 
-namespace Yp.EventsApi.Services.Services;
+namespace Yp.EventsApi.Services.Services.EventService;
 
 public interface IEventService
 {

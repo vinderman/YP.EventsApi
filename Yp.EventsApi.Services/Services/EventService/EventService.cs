@@ -4,7 +4,7 @@ using Yp.EventsApi.Services.Exceptions;
 using Yp.EventsApi.Shared.Contracts;
 using Yp.EventsApi.Shared.Models;
 
-namespace Yp.EventsApi.Services.Services;
+namespace Yp.EventsApi.Services.Services.EventService;
 
 /// <summary>
 /// Сервис обработки событий

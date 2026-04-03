@@ -2,6 +2,9 @@ using System.Reflection;
 using FluentValidation;
 using YP.EventApi.Web.Validators;
 using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Services.Services.BackgroundServices;
+using Yp.EventsApi.Services.Services.BookingService;
+using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Contracts;
 
 namespace YP.EventApi.Web.Infrastructure;
@@ -12,6 +15,8 @@ public static class ServiceCollectionExtension
     {
         // Регистрируем как синглтон, чтобы хранить данные в инстансе сервиса. При переходе на внешний источник данных переделать на Scoped
         services.AddSingleton<IEventService, EventService>();
+        services.AddSingleton<IBookingService, BookingService>();
+        services.AddHostedService<BookingProcessorBackgroundService>();
         return services;
     }
 
