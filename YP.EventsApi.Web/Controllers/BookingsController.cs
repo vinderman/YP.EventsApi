@@ -15,6 +15,12 @@ public class BookingsController : ControllerBase
         _bookingService = bookingService;
     }
 
+    /// <summary>
+    /// Получение бронирование по идентификатору
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ActionResult<BookingDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

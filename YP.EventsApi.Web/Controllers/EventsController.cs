@@ -104,6 +104,12 @@ public class EventsController: ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Создание бронирования, связанного с определенным событием
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="ct"></param>
+    /// <returns></returns>
     [HttpPost("{id}/booking")]
     [ProducesResponseType(typeof(ActionResult<BookingDto>), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

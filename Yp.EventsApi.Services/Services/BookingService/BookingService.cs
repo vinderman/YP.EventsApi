@@ -14,7 +14,7 @@ public class BookingService: IBookingService
     private List<Booking> _bookings;
     private readonly ILogger<BookingService> _logger;   
 
-    public BookingService(IMapper mapper, IEventService eventService, ILogger<BookingService> logger)
+    public BookingService(IMapper mapper, ILogger<BookingService> logger)
     {
         _bookings = new();
         _mapper = mapper;
