@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using YP.EventApi.Web.Infrastructure;
 using Yp.EventsApi.Services.Exceptions;
 using Yp.EventsApi.Services.Services;
@@ -13,7 +14,8 @@ public class EventServicesFindByIdTests
     
     public EventServicesFindByIdTests()
     {
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>());
+        var logger = new LoggerFactory();
+        var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), logger);
         var mapper = config.CreateMapper();
         _service = new EventService(mapper);
     }

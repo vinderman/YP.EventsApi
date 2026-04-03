@@ -35,8 +35,7 @@ public class EventService: IEventService
 
         if (!string.IsNullOrWhiteSpace(filter.Title))
         {
-            var title = filter.Title.ToLower();
-            query = query.Where(e => e.Title.ToLower().Contains(title));
+            query = query.Where(e => e.Title.Contains(filter.Title, StringComparison.InvariantCultureIgnoreCase));
         }
 
         if (filter.From.HasValue)
