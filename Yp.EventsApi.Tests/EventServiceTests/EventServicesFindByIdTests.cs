@@ -24,7 +24,7 @@ public class EventServicesFindByIdTests
     [Fact]
     public void EventService_GetEventByExistingId()
     {
-        var existingId = _service.GetAll(new EventFilter()).Items.FirstOrDefault().Id;
+        var existingId = _service.GetAll(new EventFilter()).Items.FirstOrDefault()!.Id;
         var result = _service.GetById(existingId);
         
         Assert.NotNull(result);

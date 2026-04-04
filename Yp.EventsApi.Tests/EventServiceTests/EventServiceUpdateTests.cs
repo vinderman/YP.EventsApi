@@ -24,7 +24,7 @@ public class EventServiceUpdateTests
     [Fact]
     public void EventService_UpdateEvent()
     {
-        var existingId = _service.GetAll(new EventFilter()).Items.FirstOrDefault().Id;
+        var existingId = _service.GetAll(new EventFilter()).Items.FirstOrDefault()!.Id;
         var createEventDto = new EventCreateDto { Title = "Test Event", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow };
         
         var updatedEvent = _service.Update(existingId, createEventDto);

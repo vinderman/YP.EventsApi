@@ -110,13 +110,12 @@ public class EventsController: ControllerBase
     /// <param name="id"></param>
     /// <param name="ct"></param>
     /// <returns></returns>
-    [HttpPost("{id}/booking")]
+    [HttpPost("{id}/book")]
     [ProducesResponseType(typeof(ActionResult<BookingDto>), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BookingDto>> BookEvent([FromRoute] Guid id, CancellationToken ct)
     {
-        var existingEvent = _eventService.GetById(id);
-        var booking = await _bookingService.CreateBookingAsync(existingEvent.Id, ct);
+        var booking = await _bookingService.CreateBookingAsync(id, ct);
         return AcceptedAtAction(actionName: nameof(BookingsController.GetBookingById), controllerName: "Bookings", routeValues: new { id = booking.Id }, value: booking);
     }
 }

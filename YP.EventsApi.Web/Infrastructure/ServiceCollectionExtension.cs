@@ -30,6 +30,7 @@ public static class ServiceCollectionExtension
 
     public static IServiceCollection AddPresentationServices(this IServiceCollection services)
     {
+        services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
         services.AddControllers();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>

@@ -25,7 +25,7 @@ public class EventServiceDeleteTests
     {
         var allEvents = _service.GetAll(new EventFilter());
         var allEventsCount = allEvents.Total;
-        var existingId = allEvents.Items.FirstOrDefault().Id;
+        var existingId = allEvents.Items.FirstOrDefault()!.Id;
         
         _service.Delete(existingId);
         

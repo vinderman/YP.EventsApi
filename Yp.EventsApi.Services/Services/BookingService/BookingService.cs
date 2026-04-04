@@ -12,13 +12,15 @@ public class BookingService: IBookingService
 {
     private readonly IMapper _mapper;
     private List<Booking> _bookings;
-    private readonly ILogger<BookingService> _logger;   
+    private readonly ILogger<BookingService> _logger;
+    private readonly IEventService _eventService;
 
-    public BookingService(IMapper mapper, ILogger<BookingService> logger)
+    public BookingService(IMapper mapper, ILogger<BookingService> logger, IEventService eventService)
     {
         _bookings = new();
         _mapper = mapper;
         _logger = logger;
+        _eventService = eventService;
     }
 
     public async Task<BookingDto> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken = default)
@@ -29,24 +31,22 @@ public class BookingService: IBookingService
         {
             throw new EntityNotFoundException($"Не удалось найти бронирование. Бронирование с идентификатором {bookingId} не найдено");
         }
-
-        await Task.Delay(1000);
         
         return _mapper.Map<BookingDto>(booking);
     }
 
     public async Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
+        var existingEvent = _eventService.GetById(eventId);
         var booking = new Booking
         {
             Id = Guid.NewGuid(),
-            EventId = eventId,
+            EventId = existingEvent.Id,
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.Now,
         };
         
         _bookings.Add(booking);
-        await Task.Delay(1000);
         
         return _mapper.Map<BookingDto>(booking);
     }
@@ -59,7 +59,7 @@ public class BookingService: IBookingService
     }
 
     public async Task UpdateBookingStatusAsync(UpdateBookingStatusRequest updateBookingStatusRequest,
-        CancellationToken ct)
+        CancellationToken ct = default)
     {
         var bookingIndex = _bookings.FindIndex(b => b.Id == updateBookingStatusRequest.Id);
 
