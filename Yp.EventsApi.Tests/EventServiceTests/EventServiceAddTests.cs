@@ -2,6 +2,7 @@ using AutoMapper;
 using Microsoft.Extensions.Logging;
 using YP.EventApi.Web.Infrastructure;
 using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Contracts;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using YP.EventApi.Web.Infrastructure;
 using Yp.EventsApi.Services.Exceptions;
 using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Contracts;
 using Yp.EventsApi.Shared.Models;
 
@@ -23,7 +24,7 @@ public class EventServicesFindByIdTests
     [Fact]
     public void EventService_GetEventByExistingId()
     {
-        var existingId = _service.GetAll(new EventFilter()).Items.FirstOrDefault().Id;
+        var existingId = _service.GetAll(new EventFilter()).Items.FirstOrDefault()!.Id;
         var result = _service.GetById(existingId);
         
         Assert.NotNull(result);

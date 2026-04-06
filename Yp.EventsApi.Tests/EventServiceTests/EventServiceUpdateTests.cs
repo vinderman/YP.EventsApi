@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using YP.EventApi.Web.Infrastructure;
 using Yp.EventsApi.Services.Exceptions;
 using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Contracts;
 using Yp.EventsApi.Shared.Models;
 
@@ -23,7 +24,7 @@ public class EventServiceUpdateTests
     [Fact]
     public void EventService_UpdateEvent()
     {
-        var existingId = _service.GetAll(new EventFilter()).Items.FirstOrDefault().Id;
+        var existingId = _service.GetAll(new EventFilter()).Items.FirstOrDefault()!.Id;
         var createEventDto = new EventCreateDto { Title = "Test Event", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow };
         
         var updatedEvent = _service.Update(existingId, createEventDto);

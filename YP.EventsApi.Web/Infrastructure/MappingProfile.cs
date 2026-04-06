@@ -10,5 +10,6 @@ public class MappingProfile: Profile
     {
         CreateMap<Event, EventDto>().ReverseMap();
         CreateMap<Event, EventCreateDto>().ReverseMap();
+        CreateMap<Booking, BookingDto>().ReverseMap();
     }
 }

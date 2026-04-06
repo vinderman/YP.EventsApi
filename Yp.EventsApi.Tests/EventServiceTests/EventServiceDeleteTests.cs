@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using YP.EventApi.Web.Infrastructure;
 using Yp.EventsApi.Services.Exceptions;
 using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Models;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
@@ -24,7 +25,7 @@ public class EventServiceDeleteTests
     {
         var allEvents = _service.GetAll(new EventFilter());
         var allEventsCount = allEvents.Total;
-        var existingId = allEvents.Items.FirstOrDefault().Id;
+        var existingId = allEvents.Items.FirstOrDefault()!.Id;
         
         _service.Delete(existingId);
         

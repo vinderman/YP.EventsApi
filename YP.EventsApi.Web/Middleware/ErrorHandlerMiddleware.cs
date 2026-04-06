@@ -1,7 +1,4 @@
-using System.Text.Json.Serialization;
-using System.Xml.Linq;
 using FluentValidation;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Yp.EventsApi.Services.Exceptions;
 
