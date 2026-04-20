@@ -9,4 +9,6 @@ public class BookingDto
     public Guid EventId { get; set; }
     
     public BookingStatus Status { get; set; }
+
+    public DateTime? ProcessedAt { get; set; }
 }

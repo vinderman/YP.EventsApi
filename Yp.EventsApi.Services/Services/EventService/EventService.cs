@@ -121,6 +121,11 @@ public class EventService: IEventService
 
     public bool ReleaseSeats(Guid eventId, int seatsCount = 1)
     {
+        if (seatsCount <= 0)
+        {
+            return false;
+        }
+        
         var currentEvent = _events.FirstOrDefault(e => e.Id == eventId);
         
         if (currentEvent == null)
@@ -128,12 +133,7 @@ public class EventService: IEventService
             throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {eventId} не найдено");
         }
 
-        var isReserved = currentEvent.TryReserveSeats(seatsCount);
-        
-        if (!isReserved)
-        {
-            throw new NoAvailableSeatsException("Для данного события нет доступных мест");
-        }
+        currentEvent.ReleaseSeats(seatsCount);
 
         return true;
     }
