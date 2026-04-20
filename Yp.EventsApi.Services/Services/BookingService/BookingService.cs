@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 using Yp.EventsApi.Services.Entities;
@@ -14,6 +15,7 @@ public class BookingService: IBookingService
     private List<Booking> _bookings;
     private readonly ILogger<BookingService> _logger;
     private readonly IEventService _eventService;
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     public BookingService(IMapper mapper, ILogger<BookingService> logger, IEventService eventService)
     {
@@ -37,18 +39,29 @@ public class BookingService: IBookingService
 
     public async Task<BookingDto> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        var existingEvent = _eventService.GetById(eventId);
-        var booking = new Booking
+        await _semaphore.WaitAsync(cancellationToken);
+        try
         {
-            Id = Guid.NewGuid(),
-            EventId = existingEvent.Id,
-            Status = BookingStatus.Pending,
-            CreatedAt = DateTime.Now,
-        };
+            _eventService.TryReserveSeats(eventId);
+
+            var booking = new Booking
+            {
+                Id = Guid.NewGuid(),
+                EventId = eventId,
+                Status = BookingStatus.Pending,
+                CreatedAt = DateTime.Now,
+            };
+
+            _bookings.Add(booking);
+
+            return _mapper.Map<BookingDto>(booking);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+       
         
-        _bookings.Add(booking);
-        
-        return _mapper.Map<BookingDto>(booking);
     }
 
     public async Task<List<BookingDto>> GetBookingsByStatusAsync(BookingStatus status, CancellationToken ct)
@@ -58,25 +71,36 @@ public class BookingService: IBookingService
         return _mapper.Map<List<BookingDto>>(bookings);
     }
 
-    public async Task UpdateBookingStatusAsync(UpdateBookingStatusRequest updateBookingStatusRequest,
-        CancellationToken ct = default)
+    public async Task ConfirmBookingAsync(Guid bookingId, Guid eventId, CancellationToken ct = default)
     {
-        var bookingIndex = _bookings.FindIndex(b => b.Id == updateBookingStatusRequest.Id);
+        var booking = EnsureBookingExists(bookingId);
+        
+        booking.Status = BookingStatus.Confirmed;
+        booking.ProcessedAt = DateTime.Now;
+        
+    }
+
+    public async Task RejectBookingAsync(Guid bookingId, Guid eventId, CancellationToken ct = default)
+    {
+        var booking = EnsureBookingExists(bookingId);
+        
+        _eventService.ReleaseSeats(eventId);
+        booking.Status = BookingStatus.Rejected;
+        booking.ProcessedAt = DateTime.Now;
+    }
+
+    private Booking EnsureBookingExists(Guid bookingId)
+    {
+        var bookingIndex = _bookings.FindIndex(b => b.Id == bookingId);
 
         if (bookingIndex == -1)
         {
             var message =
-                $"Не удалось обновить статус бронирования. Бронирование с идентификатором {updateBookingStatusRequest.Id} не найдено";
+                $"Не удалось обновить статус бронирования. Бронирование с идентификатором {bookingId} не найдено";
             _logger.LogError(message);
             throw new EntityNotFoundException(message);
         }
         
-        var booking = _bookings[bookingIndex];
-        
-        booking.Status = updateBookingStatusRequest.Status;
-        if (updateBookingStatusRequest.Status == BookingStatus.Confirmed)
-        {
-            booking.ProcessedAt = DateTime.Now;
-        }
+        return _bookings[bookingIndex];
     }
 }

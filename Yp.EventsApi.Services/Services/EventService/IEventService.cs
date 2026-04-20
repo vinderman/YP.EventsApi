@@ -28,6 +28,22 @@ public interface IEventService
     /// <param name="eventId"></param>
     /// <param name="eventToUpdate"></param>
     EventDto Update(Guid eventId, EventCreateDto eventToUpdate);
+
+    /// <summary>
+    /// Попытаться зарезервировать места на события
+    /// </summary>
+    /// <param name="eventId"></param>
+    /// <param name="seatsCount"></param>
+    /// <returns></returns>
+    bool TryReserveSeats(Guid eventId, int seatsCount = 1);
+    
+    /// <summary>
+    /// Освободить места на события
+    /// </summary>
+    /// <param name="eventId"></param>
+    /// <param name="seatsCount"></param>
+    /// <returns></returns>
+    bool ReleaseSeats(Guid eventId, int seatsCount = 1);
     
     /// <summary>
     /// Удалить событие

@@ -18,11 +18,11 @@ public class EventService: IEventService
     {
         _events = new()
         {
-            new Event { Id = Guid.NewGuid(), Title = "Тренировка по боксу", StartAt = new DateTime(2025, 03, 20 ), EndAt = new DateTime(2025, 04, 20) },
-            new Event { Id = Guid.NewGuid(), Title = "День рождения", StartAt = new DateTime(2024, 03, 20 ), EndAt = new DateTime(2026, 03, 20) },
-            new Event { Id = Guid.NewGuid(), Title = "Корпоратив", StartAt = new DateTime(2023, 03, 20 ), EndAt = new DateTime(2024, 03, 20) },
-            new Event { Id = Guid.NewGuid(), Title = "Поездка на море", StartAt = new DateTime(2026, 04, 20 ), EndAt = new DateTime(2026, 05, 13) },
-            new Event { Id = Guid.NewGuid(), Title = "Свадьба", StartAt = new DateTime(2026, 06, 10 ), EndAt = new DateTime(2026, 06, 10) }
+            Event.CreateInstance(Guid.NewGuid(), "Тренировка по боксу", new DateTime(2025, 03, 20 ), new DateTime(2025, 04, 20), 10),
+            Event.CreateInstance(Guid.NewGuid(), "День рождения", new DateTime(2024, 03, 20 ), new DateTime(2026, 03, 20), 25),
+            Event.CreateInstance(Guid.NewGuid(), "Корпоратив", new DateTime(2023, 03, 20 ), new DateTime(2024, 03, 20), 15),
+            Event.CreateInstance(Guid.NewGuid(), "Поездка на море", new DateTime(2026, 04, 20 ), new DateTime(2026, 05, 13), 20),
+            Event.CreateInstance(Guid.NewGuid(), "Свадьба", new DateTime(2026, 06, 10 ), new DateTime(2026, 06, 10), 5)
         };
         
         _mapper = mapper;
@@ -76,8 +76,7 @@ public class EventService: IEventService
 
     public EventDto Create(EventCreateDto eventCreateDto)
     {
-        var newEvent = _mapper.Map<Event>(eventCreateDto);
-        newEvent.Id = Guid.NewGuid();
+        var newEvent = Event.CreateInstance(Guid.NewGuid(), eventCreateDto.Title, eventCreateDto.StartAt, eventCreateDto.EndAt, eventCreateDto.TotalSeats, eventCreateDto.Description);
         
         _events.Add(newEvent);
         return _mapper.Map<EventDto>(newEvent);
@@ -98,6 +97,45 @@ public class EventService: IEventService
 
         _events[updateAtIndex] = updatedEvent;
         return _mapper.Map<EventDto>(updatedEvent);
+    }
+
+
+    public bool TryReserveSeats(Guid eventId, int seatsCount = 1)
+    {
+        var currentEvent = _events.FirstOrDefault(e => e.Id == eventId);
+        
+        if (currentEvent == null)
+        {
+            throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {eventId} не найдено");
+        }
+
+        var isReserved = currentEvent.TryReserveSeats(seatsCount);
+        
+        if (!isReserved)
+        {
+            throw new NoAvailableSeatsException("Для данного события нет доступных мест");
+        }
+
+        return true;
+    }
+
+    public bool ReleaseSeats(Guid eventId, int seatsCount = 1)
+    {
+        var currentEvent = _events.FirstOrDefault(e => e.Id == eventId);
+        
+        if (currentEvent == null)
+        {
+            throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {eventId} не найдено");
+        }
+
+        var isReserved = currentEvent.TryReserveSeats(seatsCount);
+        
+        if (!isReserved)
+        {
+            throw new NoAvailableSeatsException("Для данного события нет доступных мест");
+        }
+
+        return true;
     }
 
     public void Delete(Guid eventId)

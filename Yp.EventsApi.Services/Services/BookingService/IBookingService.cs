@@ -12,5 +12,7 @@ public interface IBookingService
     
     public Task<List<BookingDto>> GetBookingsByStatusAsync(BookingStatus status, CancellationToken ct = default);
     
-    public Task UpdateBookingStatusAsync(UpdateBookingStatusRequest updateBookingStatusRequest, CancellationToken ct = default);
+    public Task ConfirmBookingAsync(Guid bookingId, Guid eventId, CancellationToken ct = default);
+    
+    public Task RejectBookingAsync(Guid bookingId, Guid eventId, CancellationToken ct = default);
 }
