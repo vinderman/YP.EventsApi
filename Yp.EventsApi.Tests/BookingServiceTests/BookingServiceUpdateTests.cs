@@ -36,6 +36,8 @@ public class BookingServiceUpdateTests
             Description = "test",
             StartAt = DateTime.Now,
             EndAt = DateTime.Now.AddHours(1),
+            TotalSeats = 10,
+            AvailableSeats = 10,
         });
         
         var bookingService = new BookingService(_mapper, _logger, eventService.Object);
@@ -44,11 +46,7 @@ public class BookingServiceUpdateTests
         
         var booking = await bookingService.CreateBookingAsync(eventId);
 
-       await bookingService.UpdateBookingStatusAsync(new UpdateBookingStatusRequest
-        {
-            Id = booking.Id,
-            Status = BookingStatus.Confirmed,
-        });
+        await bookingService.ConfirmBookingAsync(booking.Id, eventId);
        
        var updatedBooking = await bookingService.GetBookingByIdAsync(booking.Id);
        

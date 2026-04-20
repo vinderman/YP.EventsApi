@@ -36,6 +36,8 @@ public class BookingServiceCreateTests
             Description = "test",
             StartAt = DateTime.Now,
             EndAt = DateTime.Now.AddHours(1),
+            TotalSeats = 10,
+            AvailableSeats = 10,
         });
         
         var bookingService = new BookingService(_mapper, _logger, eventService.Object);
@@ -61,6 +63,8 @@ public class BookingServiceCreateTests
             Description = "test",
             StartAt = DateTime.Now,
             EndAt = DateTime.Now.AddHours(1),
+            TotalSeats = 10,
+            AvailableSeats = 10,
         });
         
         var bookingService = new BookingService(_mapper, _logger, eventService.Object);

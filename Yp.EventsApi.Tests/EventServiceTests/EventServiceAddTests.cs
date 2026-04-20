@@ -25,7 +25,14 @@ public class EventServiceAddTests
     [Fact]
     public void EventService_AddEvent()
     {
-        var createEventDto = new EventCreateDto { Title = "Test Event", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow };
+        var startAt = DateTime.UtcNow;
+        var createEventDto = new EventCreateDto
+        {
+            Title = "Test Event",
+            StartAt = startAt,
+            EndAt = startAt.AddHours(1),
+            TotalSeats = 10
+        };
 
         // Act
         var result = _service.Create(createEventDto);
