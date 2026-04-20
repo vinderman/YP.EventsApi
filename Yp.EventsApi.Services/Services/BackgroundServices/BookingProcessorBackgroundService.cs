@@ -52,6 +52,7 @@ public class BookingProcessorBackgroundService: BackgroundService
 
         var tasks = pendingBookings.Select(booking => ProcessSingleBooking(booking, stoppingToken));
        
+        
         await Task.WhenAll(tasks);
     }
 
