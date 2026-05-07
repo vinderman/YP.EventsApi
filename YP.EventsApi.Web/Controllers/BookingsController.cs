@@ -24,6 +24,7 @@ public class BookingsController : ControllerBase
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ActionResult<BookingDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<BookingDto>> GetBookingById(Guid id, CancellationToken cancellationToken)
     {
         var booking = await _bookingService.GetBookingByIdAsync(id, cancellationToken);

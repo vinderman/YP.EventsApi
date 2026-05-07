@@ -1,7 +1,7 @@
 using AutoMapper;
 using Microsoft.Extensions.Logging;
-using Moq;
 using YP.EventApi.Web.Infrastructure;
+using Yp.EventsApi.Services.Exceptions;
 using Yp.EventsApi.Services.Services.BookingService;
 using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Contracts;
@@ -23,37 +23,112 @@ public class BookingServiceUpdateTests
     }
 
     [Fact]
-    public async Task BookingService_UpdateBooking_ShouldChangeBooking()
+    public async Task BookingService_ConfirmBooking_ShouldSetConfirmedStatusAndProcessedAt()
     {
-        var bookingId = Guid.NewGuid();
-
-        var eventService = new Mock<IEventService>();
-        var eventId = Guid.NewGuid();
-        eventService.Setup(e => e.GetById(eventId)).Returns(new EventDto
+        // Arrange
+        var eventService = new EventService(_mapper);
+        var createdEvent = eventService.Create(new EventCreateDto
         {
-            Id = eventId,
             Title = "test",
             Description = "test",
             StartAt = DateTime.Now,
             EndAt = DateTime.Now.AddHours(1),
+            TotalSeats = 1,
         });
         
-        var bookingService = new BookingService(_mapper, _logger, eventService.Object);
-        
-        
-        
-        var booking = await bookingService.CreateBookingAsync(eventId);
+        var bookingService = new BookingService(_mapper, _logger, eventService);
 
-       await bookingService.UpdateBookingStatusAsync(new UpdateBookingStatusRequest
+        var booking = await bookingService.CreateBookingAsync(createdEvent.Id);
+
+        // Act
+        await bookingService.ConfirmBookingAsync(booking.Id, createdEvent.Id);
+       
+        var updatedBooking = await bookingService.GetBookingByIdAsync(booking.Id);
+       
+        // Assert
+        Assert.Equal(booking.Id, updatedBooking.Id);
+        Assert.Equal(BookingStatus.Confirmed, updatedBooking.Status);
+        Assert.NotNull(updatedBooking.ProcessedAt);
+
+    }
+
+    [Fact]
+    public async Task BookingService_RejectBooking_ShouldSetRejectedStatusAndProcessedAt()
+    {
+        // Arrange
+        var eventService = new EventService(_mapper);
+        var createdEvent = eventService.Create(new EventCreateDto
         {
-            Id = booking.Id,
-            Status = BookingStatus.Confirmed,
+            Title = "test",
+            Description = "test",
+            StartAt = DateTime.Now,
+            EndAt = DateTime.Now.AddHours(1),
+            TotalSeats = 1,
         });
-       
-       var updatedBooking = await bookingService.GetBookingByIdAsync(booking.Id);
-       
-       Assert.Equal(booking.Id, updatedBooking.Id);
-       Assert.Equal(BookingStatus.Confirmed, updatedBooking.Status);
 
+        var bookingService = new BookingService(_mapper, _logger, eventService);
+        var booking = await bookingService.CreateBookingAsync(createdEvent.Id);
+
+        // Act
+        await bookingService.RejectBookingAsync(booking.Id, createdEvent.Id);
+        var updatedBooking = await bookingService.GetBookingByIdAsync(booking.Id);
+
+        // Assert
+        Assert.Equal(BookingStatus.Rejected, updatedBooking.Status);
+        Assert.NotNull(updatedBooking.ProcessedAt);
+    }
+
+    [Fact]
+    public async Task BookingService_RejectBooking_ShouldReleaseSeatsAndRestoreAvailableSeats()
+    {
+        // Arrange
+        var eventService = new EventService(_mapper);
+        var createdEvent = eventService.Create(new EventCreateDto
+        {
+            Title = "test",
+            Description = "test",
+            StartAt = DateTime.Now,
+            EndAt = DateTime.Now.AddHours(1),
+            TotalSeats = 1,
+        });
+
+        var bookingService = new BookingService(_mapper, _logger, eventService);
+        var booking = await bookingService.CreateBookingAsync(createdEvent.Id);
+        var afterCreate = eventService.GetById(createdEvent.Id);
+        Assert.Equal(0, afterCreate.AvailableSeats);
+
+        // Act
+        await bookingService.RejectBookingAsync(booking.Id, createdEvent.Id);
+        var afterReject = eventService.GetById(createdEvent.Id);
+
+        // Assert
+        Assert.Equal(1, afterReject.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task BookingService_RejectBooking_WhenSeatsReleased_ShouldAllowCreatingNewBookingForSameSeat()
+    {
+        // Arrange
+        var eventService = new EventService(_mapper);
+        var createdEvent = eventService.Create(new EventCreateDto
+        {
+            Title = "test",
+            Description = "test",
+            StartAt = DateTime.Now,
+            EndAt = DateTime.Now.AddHours(1),
+            TotalSeats = 1,
+        });
+
+        var bookingService = new BookingService(_mapper, _logger, eventService);
+        var booking = await bookingService.CreateBookingAsync(createdEvent.Id);
+        await Assert.ThrowsAsync<NoAvailableSeatsException>(async () => await bookingService.CreateBookingAsync(createdEvent.Id));
+
+        // Act
+        await bookingService.RejectBookingAsync(booking.Id, createdEvent.Id);
+        var newBooking = await bookingService.CreateBookingAsync(createdEvent.Id);
+
+        // Assert
+        Assert.NotNull(newBooking);
+        Assert.Equal(BookingStatus.Pending, newBooking.Status);
     }
 }

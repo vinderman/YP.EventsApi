@@ -70,6 +70,7 @@ public class ErrorHandlerMiddleware: ControllerBase
         var statusCode = exception switch
         {
             EntityNotFoundException en => StatusCodes.Status404NotFound,
+            NoAvailableSeatsException en => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError
         };
 

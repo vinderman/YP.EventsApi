@@ -16,6 +16,8 @@ public class EventCreateDtoValidator: AbstractValidator<EventCreateDto>
         RuleFor(x => x.EndAt)
             .NotEmpty().WithMessage("Дата окончания события обязательна для заполнения")
             .GreaterThan(x => x.StartAt).WithMessage("Дата окончания события не может быть раньше даты начала");
-        
+
+
+        RuleFor(x => x.TotalSeats).NotEmpty().GreaterThan(0).WithMessage("Количество мест должно быть больше нуля");
     }
 }
