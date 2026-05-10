@@ -1,6 +1,8 @@
 using System.Reflection;
 using FluentValidation;
+using Microsoft.EntityFrameworkCore;
 using YP.EventApi.Web.Validators;
+using Yp.EventsApi.Services.DataAccess;
 using Yp.EventsApi.Services.Services;
 using Yp.EventsApi.Services.Services.BackgroundServices;
 using Yp.EventsApi.Services.Services.BookingService;
@@ -13,15 +15,16 @@ public static class ServiceCollectionExtension
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        // Регистрируем как синглтон, чтобы хранить данные в инстансе сервиса. При переходе на внешний источник данных переделать на Scoped
-        services.AddSingleton<IEventService, EventService>();
-        services.AddSingleton<IBookingService, BookingService>();
+        services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IBookingService, BookingService>();
         services.AddHostedService<BookingProcessorBackgroundService>();
         return services;
     }
 
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        var connection = configuration.GetValue<string>("ConnectionStrings:DefaultConnection");
+        services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connection));
         services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
         services.AddScoped<IValidator<EventCreateDto>, EventCreateDtoValidator>();
 
