@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Yp.EventsApi.Services.DataAccess;
 using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Exceptions;
@@ -103,19 +104,26 @@ public class EventService: IEventService
 
     public async Task<bool> TryReserveSeats(Guid eventId, int seatsCount = 1)
     {
-        var currentEvent = await _context.Events.FirstOrDefaultAsync(e => e.Id == eventId);
-        
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var currentEvent = await LoadEventForUpdateAsync(eventId);
+
         if (currentEvent == null)
         {
+            await transaction.RollbackAsync();
             throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {eventId} не найдено");
         }
 
         var isReserved = currentEvent.TryReserveSeats(seatsCount);
-        
+
         if (!isReserved)
         {
+            await transaction.RollbackAsync();
             throw new NoAvailableSeatsException("Для данного события нет доступных мест");
         }
+
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return true;
     }
@@ -126,17 +134,30 @@ public class EventService: IEventService
         {
             return false;
         }
-        
-        var currentEvent = await _context.Events.FirstOrDefaultAsync(e => e.Id == eventId);
-        
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var currentEvent = await LoadEventForUpdateAsync(eventId);
+
         if (currentEvent == null)
         {
+            await transaction.RollbackAsync();
             throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {eventId} не найдено");
         }
 
         currentEvent.ReleaseSeats(seatsCount);
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return true;
+    }
+
+    /// <summary>
+    /// Загружает событие с блокировкой строки (<c>SELECT … FOR UPDATE</c>) в рамках активной транзакции контекста.
+    /// </summary>
+    private async Task<Event?> LoadEventForUpdateAsync(Guid eventId)
+    {
+        return await _context.Events.FromSqlInterpolated($"SELECT * FROM \"Events\" WHERE \"Id\" = {eventId} FOR UPDATE").FirstOrDefaultAsync();
     }
 
     public async Task Delete(Guid eventId)

@@ -62,7 +62,7 @@ public class BookingService: IBookingService
         var booking = await EnsureBookingExists(bookingId);
         
         booking.Status = BookingStatus.Confirmed;
-        booking.ProcessedAt = DateTime.Now;
+        booking.ProcessedAt = DateTime.UtcNow;
         
         await _context.SaveChangesAsync(ct);
     }
@@ -73,7 +73,7 @@ public class BookingService: IBookingService
         
         await _eventService.ReleaseSeats(eventId);
         booking.Status = BookingStatus.Rejected;
-        booking.ProcessedAt = DateTime.Now;
+        booking.ProcessedAt = DateTime.UtcNow;
         
         await _context.SaveChangesAsync(ct);
     }
