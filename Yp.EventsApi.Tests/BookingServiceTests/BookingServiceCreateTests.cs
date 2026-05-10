@@ -1,7 +1,10 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using YP.EventApi.Web.Infrastructure;
+using Yp.EventsApi.Services.DataAccess;
 using Yp.EventsApi.Services.Exceptions;
 using Yp.EventsApi.Services.Services.BookingService;
 using Yp.EventsApi.Services.Services.EventService;
@@ -14,6 +17,8 @@ public class BookingServiceCreateTests
 {
     private readonly ILogger<BookingService> _logger;
     private readonly IMapper _mapper;
+    private readonly string dbName = Guid.NewGuid().ToString();
+    private readonly AppDbContext _dbContext;
     public BookingServiceCreateTests()
     {
         var logger = new LoggerFactory();
@@ -21,6 +26,10 @@ public class BookingServiceCreateTests
         var mapper = config.CreateMapper();
         _mapper = mapper;
         _logger = logger.CreateLogger<BookingService>();
+        var services = new ServiceCollection();
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(dbName)); 
+        _dbContext = services.BuildServiceProvider().GetRequiredService<AppDbContext>();
     }
 
     [Fact]
@@ -29,9 +38,9 @@ public class BookingServiceCreateTests
         // Arrange
         var eventService = new Mock<IEventService>();
         var eventId = Guid.NewGuid();
-        eventService.Setup(e => e.TryReserveSeats(eventId, 1)).Returns(true);
+        eventService.Setup(e => e.TryReserveSeats(eventId, 1)).ReturnsAsync(true);
         
-        var bookingService = new BookingService(_mapper, _logger, eventService.Object);
+        var bookingService = new BookingService(_mapper, _logger, eventService.Object, _dbContext);
         
         // Act
         var newBooking = await bookingService.CreateBookingAsync(eventId);
@@ -45,8 +54,8 @@ public class BookingServiceCreateTests
     public async Task BookingService_CreateBooking_MultipleBookingsWithinLimit_ShouldSucceedAndHaveUniqueIds()
     {
         // Arrange
-        var eventService = new EventService(_mapper);
-        var createdEvent = eventService.Create(new EventCreateDto
+        var eventService = new EventService(_mapper, _dbContext);
+        var createdEvent = await eventService.Create(new EventCreateDto
         {
             Title = "test",
             Description = "test",
@@ -55,7 +64,7 @@ public class BookingServiceCreateTests
             TotalSeats = 3,
         });
 
-        var bookingService = new BookingService(_mapper, _logger, eventService);
+        var bookingService = new BookingService(_mapper, _logger, eventService, _dbContext);
 
         // Act
         var booking1 = await bookingService.CreateBookingAsync(createdEvent.Id);
@@ -73,8 +82,8 @@ public class BookingServiceCreateTests
     public async Task BookingService_CreateBooking_ShouldDecreaseAvailableSeatsByOne()
     {
         // Arrange
-        var eventService = new EventService(_mapper);
-        var createdEvent = eventService.Create(new EventCreateDto
+        var eventService = new EventService(_mapper, _dbContext);
+        var createdEvent = await eventService.Create(new EventCreateDto
         {
             Title = "test",
             Description = "test",
@@ -83,13 +92,13 @@ public class BookingServiceCreateTests
             TotalSeats = 2,
         });
 
-        var before = eventService.GetById(createdEvent.Id);
+        var before = await eventService.GetById(createdEvent.Id);
         
-        var bookingService = new BookingService(_mapper, _logger, eventService);
+        var bookingService = new BookingService(_mapper, _logger, eventService, _dbContext);
 
         // Act
         await bookingService.CreateBookingAsync(createdEvent.Id);
-        var after = eventService.GetById(createdEvent.Id);
+        var after = await eventService.GetById(createdEvent.Id);
         
         // Assert
         Assert.Equal(before.AvailableSeats - 1, after.AvailableSeats);
@@ -99,8 +108,8 @@ public class BookingServiceCreateTests
     public async Task BookingService_CreateBooking_AfterSeatsExhausted_ShouldThrowNoAvailableSeatsException()
     {
         // Arrange
-        var eventService = new EventService(_mapper);
-        var createdEvent = eventService.Create(new EventCreateDto
+        var eventService = new EventService(_mapper, _dbContext);
+        var createdEvent = await eventService.Create(new EventCreateDto
         {
             Title = "test",
             Description = "test",
@@ -109,7 +118,7 @@ public class BookingServiceCreateTests
             TotalSeats = 1,
         });
 
-        var bookingService = new BookingService(_mapper, _logger, eventService);
+        var bookingService = new BookingService(_mapper, _logger, eventService, _dbContext);
 
         // Act
         _ = await bookingService.CreateBookingAsync(createdEvent.Id);
@@ -122,8 +131,8 @@ public class BookingServiceCreateTests
     public async Task BookingService_CreateBooking_ForNonExistingEvent_ShouldThrowEntityNotFoundException()
     {
         // Arrange
-        var eventService = new EventService(_mapper);
-        var bookingService = new BookingService(_mapper, _logger, eventService);
+        var eventService = new EventService(_mapper, _dbContext);
+        var bookingService = new BookingService(_mapper, _logger, eventService, _dbContext);
 
         // Assert
         await Assert.ThrowsAsync<EntityNotFoundException>(async () => await bookingService.CreateBookingAsync(Guid.NewGuid()));
@@ -139,7 +148,7 @@ public class BookingServiceCreateTests
             .Setup(e => e.TryReserveSeats(eventId, 1))
             .Throws(new NoAvailableSeatsException("Для данного события нет доступных мест"));
 
-        var bookingService = new BookingService(_mapper, _logger, eventService.Object);
+        var bookingService = new BookingService(_mapper, _logger, eventService.Object, _dbContext);
 
         // Assert
         await Assert.ThrowsAsync<NoAvailableSeatsException>(async () => await bookingService.CreateBookingAsync(eventId));

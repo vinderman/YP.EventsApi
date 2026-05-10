@@ -1,6 +1,10 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.InMemory.Storage.Internal;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using YP.EventApi.Web.Infrastructure;
+using Yp.EventsApi.Services.DataAccess;
 using Yp.EventsApi.Services.Services;
 using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Contracts;
@@ -14,16 +18,22 @@ public class EventServiceAddTests
 {
     private readonly IEventService _service;
     
+    private readonly string dbName = Guid.NewGuid().ToString();
+    
     public EventServiceAddTests()
     {
         var logger = new LoggerFactory();
         var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), logger);
         var mapper = config.CreateMapper();
-        _service = new EventService(mapper);
+        var services = new ServiceCollection();
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(dbName)); 
+        var db = services.BuildServiceProvider().GetService<AppDbContext>();
+        _service = new EventService(mapper, db);
     }
     
     [Fact]
-    public void EventService_AddEvent()
+    public async Task EventService_AddEvent()
     {
         var startAt = DateTime.UtcNow;
         var createEventDto = new EventCreateDto
@@ -35,7 +45,7 @@ public class EventServiceAddTests
         };
 
         // Act
-        var result = _service.Create(createEventDto);
+        var result = await _service.Create(createEventDto);
 
         // Assert
         Assert.NotNull(result);

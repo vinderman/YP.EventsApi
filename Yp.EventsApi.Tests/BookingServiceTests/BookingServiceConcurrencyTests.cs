@@ -1,6 +1,9 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using YP.EventApi.Web.Infrastructure;
+using Yp.EventsApi.Services.DataAccess;
 using Yp.EventsApi.Services.Exceptions;
 using Yp.EventsApi.Services.Services.BookingService;
 using Yp.EventsApi.Services.Services.EventService;
@@ -12,12 +15,18 @@ public class BookingServiceConcurrencyTests
 {
     private readonly ILogger<BookingService> _logger;
     private readonly IMapper _mapper;
+    private readonly string dbName = Guid.NewGuid().ToString();
+    private readonly AppDbContext _dbContext;
 
     public BookingServiceConcurrencyTests()
     {
         var loggerFactory = new LoggerFactory();
         var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), loggerFactory);
         _mapper = config.CreateMapper();
+        var services = new ServiceCollection();
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(dbName)); 
+        _dbContext = services.BuildServiceProvider().GetService<AppDbContext>();
         _logger = loggerFactory.CreateLogger<BookingService>();
     }
 
@@ -25,8 +34,8 @@ public class BookingServiceConcurrencyTests
     public async Task BookingService_CreateBooking_ConcurrentRequests_ShouldPreventOverbooking()
     {
         // Arrange
-        var eventService = new EventService(_mapper);
-        var createdEvent = eventService.Create(new EventCreateDto
+        var eventService = new EventService(_mapper, _dbContext);
+        var createdEvent = await eventService.Create(new EventCreateDto
         {
             Title = "test",
             Description = "test",
@@ -35,7 +44,7 @@ public class BookingServiceConcurrencyTests
             TotalSeats = 5,
         });
 
-        var bookingService = new BookingService(_mapper, _logger, eventService);
+        var bookingService = new BookingService(_mapper, _logger, eventService, _dbContext);
 
         // Act
         var tasks = Enumerable.Range(0, 20).Select(async _ =>
@@ -61,7 +70,7 @@ public class BookingServiceConcurrencyTests
         Assert.Equal(15, failed.Count);
         Assert.All(failed, r => Assert.IsType<NoAvailableSeatsException>(r.Error));
 
-        var updatedEvent = eventService.GetById(createdEvent.Id);
+        var updatedEvent = await eventService.GetById(createdEvent.Id);
         Assert.Equal(0, updatedEvent.AvailableSeats);
     }
 
@@ -69,8 +78,8 @@ public class BookingServiceConcurrencyTests
     public async Task BookingService_CreateBooking_ConcurrentRequests_ShouldCreateUniqueIds()
     {
         // Arrange
-        var eventService = new EventService(_mapper);
-        var createdEvent = eventService.Create(new EventCreateDto
+        var eventService = new EventService(_mapper, _dbContext);
+        var createdEvent = await eventService.Create(new EventCreateDto
         {
             Title = "test",
             Description = "test",
@@ -79,7 +88,7 @@ public class BookingServiceConcurrencyTests
             TotalSeats = 10,
         });
 
-        var bookingService = new BookingService(_mapper, _logger, eventService);
+        var bookingService = new BookingService(_mapper, _logger, eventService, _dbContext);
 
         // Act
         var tasks = Enumerable.Range(0, 10)
@@ -92,7 +101,7 @@ public class BookingServiceConcurrencyTests
         Assert.Equal(10, bookings.Length);
         Assert.Equal(10, bookings.Select(b => b.Id).Distinct().Count());
 
-        var updatedEvent = eventService.GetById(createdEvent.Id);
+        var updatedEvent = await eventService.GetById(createdEvent.Id);
         Assert.Equal(0, updatedEvent.AvailableSeats);
     }
 }

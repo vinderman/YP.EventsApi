@@ -1,6 +1,5 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Yp.EventsApi.Services.DataAccess;
 using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Exceptions;
@@ -19,20 +18,12 @@ public class EventService: IEventService
 
     public EventService(IMapper mapper, AppDbContext context)
     {
-        // _events = new()
-        // {
-        //     Event.CreateInstance(Guid.NewGuid(), "Тренировка по боксу", new DateTime(2025, 03, 20 ), new DateTime(2025, 04, 20), 10),
-        //     Event.CreateInstance(Guid.NewGuid(), "День рождения", new DateTime(2024, 03, 20 ), new DateTime(2026, 03, 20), 25),
-        //     Event.CreateInstance(Guid.NewGuid(), "Корпоратив", new DateTime(2023, 03, 20 ), new DateTime(2024, 03, 20), 15),
-        //     Event.CreateInstance(Guid.NewGuid(), "Поездка на море", new DateTime(2026, 04, 20 ), new DateTime(2026, 05, 13), 20),
-        //     Event.CreateInstance(Guid.NewGuid(), "Свадьба", new DateTime(2026, 06, 10 ), new DateTime(2026, 06, 10), 5)
-        // };
         _context = context;
         _mapper = mapper;
     }
 
     
-    public PaginatedResult<EventDto> GetAll(EventFilter filter)
+    public async Task<PaginatedResult<EventDto>> GetAll(EventFilter filter)
     {
         var query = _context.Events.AsQueryable();
 
@@ -53,7 +44,7 @@ public class EventService: IEventService
         
         var totalCount = query.Count();
         
-        var events = query.Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize).ToList();
+        var events = await query.Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize).ToListAsync();
         
         return new PaginatedResult<EventDto>
         {

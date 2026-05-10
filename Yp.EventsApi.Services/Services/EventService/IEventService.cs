@@ -8,7 +8,7 @@ public interface IEventService
     /// <summary>
     /// Получить все события
     /// </summary>
-    PaginatedResult<EventDto> GetAll(EventFilter filter);
+    Task<PaginatedResult<EventDto>> GetAll(EventFilter filter);
     
     /// <summary>
     /// Получить событие по идентификатору
