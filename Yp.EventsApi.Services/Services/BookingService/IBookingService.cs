@@ -1,4 +1,3 @@
-using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Shared.Contracts;
 using Yp.EventsApi.Shared.Enums;
 

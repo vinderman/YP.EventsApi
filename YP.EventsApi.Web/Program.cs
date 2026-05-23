@@ -1,6 +1,5 @@
 using YP.EventApi.Web.Infrastructure;
 using YP.EventApi.Web.Middleware;
-using Yp.EventsApi.Services.DataAccess;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,12 +18,6 @@ if (builder.Environment.IsDevelopment())
 } 
 
 var app = builder.Build();
-
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
-} 
 
 app.UseMiddleware<ErrorHandlerMiddleware>();
 

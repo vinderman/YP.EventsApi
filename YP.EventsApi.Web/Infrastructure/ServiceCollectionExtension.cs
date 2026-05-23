@@ -1,9 +1,7 @@
-using System.Reflection;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using YP.EventApi.Web.Validators;
-using Yp.EventsApi.Services.DataAccess;
-using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.DataAccess;
 using Yp.EventsApi.Services.Services.BackgroundServices;
 using Yp.EventsApi.Services.Services.BookingService;
 using Yp.EventsApi.Services.Services.EventService;
