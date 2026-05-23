@@ -34,6 +34,8 @@ public class Event
     public required int TotalSeats { get; set; }
     
     public int AvailableSeats { get; set; }
+    
+    public List<Booking> Bookings { get; set; }
 
     public bool TryReserveSeats(int count = 1)
     {

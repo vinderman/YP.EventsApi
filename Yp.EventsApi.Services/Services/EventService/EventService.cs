@@ -1,4 +1,6 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using Yp.EventsApi.Services.DataAccess;
 using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Exceptions;
 using Yp.EventsApi.Shared.Contracts;
@@ -12,26 +14,18 @@ namespace Yp.EventsApi.Services.Services.EventService;
 public class EventService: IEventService
 {
     private readonly IMapper _mapper;
-    private List<Event> _events;
+    private readonly AppDbContext _context;
 
-    public EventService(IMapper mapper)
+    public EventService(IMapper mapper, AppDbContext context)
     {
-        _events = new()
-        {
-            Event.CreateInstance(Guid.NewGuid(), "Тренировка по боксу", new DateTime(2025, 03, 20 ), new DateTime(2025, 04, 20), 10),
-            Event.CreateInstance(Guid.NewGuid(), "День рождения", new DateTime(2024, 03, 20 ), new DateTime(2026, 03, 20), 25),
-            Event.CreateInstance(Guid.NewGuid(), "Корпоратив", new DateTime(2023, 03, 20 ), new DateTime(2024, 03, 20), 15),
-            Event.CreateInstance(Guid.NewGuid(), "Поездка на море", new DateTime(2026, 04, 20 ), new DateTime(2026, 05, 13), 20),
-            Event.CreateInstance(Guid.NewGuid(), "Свадьба", new DateTime(2026, 06, 10 ), new DateTime(2026, 06, 10), 5)
-        };
-        
+        _context = context;
         _mapper = mapper;
     }
 
     
-    public PaginatedResult<EventDto> GetAll(EventFilter filter)
+    public async Task<PaginatedResult<EventDto>> GetAll(EventFilter filter)
     {
-        var query = _events.AsEnumerable();
+        var query = _context.Events.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(filter.Title))
         {
@@ -50,7 +44,7 @@ public class EventService: IEventService
         
         var totalCount = query.Count();
         
-        var events = query.Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize).ToList();
+        var events = await query.Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize).ToListAsync();
         
         return new PaginatedResult<EventDto>
         {
@@ -62,9 +56,9 @@ public class EventService: IEventService
         };
     }
     
-    public EventDto GetById(Guid id)
+    public async Task<EventDto> GetById(Guid id)
     {
-        var result = _events.FirstOrDefault(e => e.Id == id);
+        var result = await _context.Events.FirstOrDefaultAsync(e => e.Id == id);
 
         if (result == null)
         {
@@ -74,79 +68,99 @@ public class EventService: IEventService
         return _mapper.Map<EventDto>(result);
     }
 
-    public EventDto Create(EventCreateDto eventCreateDto)
+    public async Task<EventDto> Create(EventCreateDto eventCreateDto)
     {
         var newEvent = Event.CreateInstance(Guid.NewGuid(), eventCreateDto.Title, eventCreateDto.StartAt, eventCreateDto.EndAt, eventCreateDto.TotalSeats, eventCreateDto.Description);
         
-        _events.Add(newEvent);
+        _context.Events.Add(newEvent);
+        await _context.SaveChangesAsync();
         return _mapper.Map<EventDto>(newEvent);
     }
 
-    public EventDto Update(Guid eventId, EventCreateDto eventCreateDto)
+    public async Task<EventDto> Update(Guid eventId, EventCreateDto eventCreateDto)
     {
-        var updateAtIndex = _events.FindIndex(e => e.Id == eventId);
+        var existingEvent = _context.Events.FirstOrDefault(e => e.Id == eventId);
 
-        if (updateAtIndex == -1)
+        if (existingEvent == null)
         {
             throw new EntityNotFoundException($"Не удалось обновить событие. Событие с идентификатором {eventId} не найдено");
         }
+
+        existingEvent = _mapper.Map<Event>(eventCreateDto);
+        await _context.SaveChangesAsync();
         
-        var updatedEvent = _mapper.Map<Event>(eventCreateDto);
-        updatedEvent.Id = eventId;
-
-
-        _events[updateAtIndex] = updatedEvent;
-        return _mapper.Map<EventDto>(updatedEvent);
+        return _mapper.Map<EventDto>(existingEvent);
     }
 
 
-    public bool TryReserveSeats(Guid eventId, int seatsCount = 1)
+    public async Task<bool> TryReserveSeats(Guid eventId, int seatsCount = 1)
     {
-        var currentEvent = _events.FirstOrDefault(e => e.Id == eventId);
-        
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var currentEvent = await LoadEventForUpdateAsync(eventId);
+
         if (currentEvent == null)
         {
+            await transaction.RollbackAsync();
             throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {eventId} не найдено");
         }
 
         var isReserved = currentEvent.TryReserveSeats(seatsCount);
-        
+
         if (!isReserved)
         {
+            await transaction.RollbackAsync();
             throw new NoAvailableSeatsException("Для данного события нет доступных мест");
         }
+
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return true;
     }
 
-    public bool ReleaseSeats(Guid eventId, int seatsCount = 1)
+    public async Task<bool> ReleaseSeats(Guid eventId, int seatsCount = 1)
     {
         if (seatsCount <= 0)
         {
             return false;
         }
-        
-        var currentEvent = _events.FirstOrDefault(e => e.Id == eventId);
-        
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
+        var currentEvent = await LoadEventForUpdateAsync(eventId);
+
         if (currentEvent == null)
         {
+            await transaction.RollbackAsync();
             throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {eventId} не найдено");
         }
 
         currentEvent.ReleaseSeats(seatsCount);
+        await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return true;
     }
 
-    public void Delete(Guid eventId)
+    /// <summary>
+    /// Загружает событие с блокировкой строки (<c>SELECT … FOR UPDATE</c>) в рамках активной транзакции контекста.
+    /// </summary>
+    private async Task<Event?> LoadEventForUpdateAsync(Guid eventId)
     {
-        var eventToDelete = _events.Find(e => e.Id == eventId);
+        return await _context.Events.FromSqlInterpolated($"SELECT * FROM \"Events\" WHERE \"Id\" = {eventId} FOR UPDATE").FirstOrDefaultAsync();
+    }
+
+    public async Task Delete(Guid eventId)
+    {
+        var eventToDelete = await _context.Events.FirstOrDefaultAsync(e => e.Id == eventId);
 
         if (eventToDelete == null)
         {
             throw new EntityNotFoundException($"Не удалось удалить событие. Событие с идентификатором {eventId} не найдено");
         }
         
-        _events.Remove(eventToDelete);
+        _context.Events.Remove(eventToDelete);
+        await _context.SaveChangesAsync();
     }
 }

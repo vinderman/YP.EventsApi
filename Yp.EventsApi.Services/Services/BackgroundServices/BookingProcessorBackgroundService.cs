@@ -13,7 +13,6 @@ public class BookingProcessorBackgroundService: BackgroundService
 {
     private readonly ILogger<BookingProcessorBackgroundService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     
     public BookingProcessorBackgroundService(ILogger<BookingProcessorBackgroundService> logger, IServiceScopeFactory scopeFactory)
     {
@@ -51,7 +50,6 @@ public class BookingProcessorBackgroundService: BackgroundService
         var pendingBookings = await bookingService.GetBookingsByStatusAsync(BookingStatus.Pending, stoppingToken);
 
         var tasks = pendingBookings.Select(booking => ProcessSingleBooking(booking, stoppingToken));
-       
         
         await Task.WhenAll(tasks);
     }
@@ -65,22 +63,12 @@ public class BookingProcessorBackgroundService: BackgroundService
         try
         {
             // убеждаемся, что событие существует
-            eventService.GetById(booking.EventId);
+            await eventService.GetById(booking.EventId);
         }
         catch (EntityNotFoundException e)
         {
             _logger.LogWarning(e, "Событие не найдено, отклоняем бронирование {Id}", booking.Id);
-            
-            // Если произошла ошибка, отклоняем бронь
-            await _semaphore.WaitAsync(stoppingToken);
-            try
-            {
-                await bookingService.RejectBookingAsync(booking.Id, booking.EventId, stoppingToken);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
+            await bookingService.RejectBookingAsync(booking.Id, booking.EventId, stoppingToken);
             
             return;
         }
@@ -99,18 +87,7 @@ public class BookingProcessorBackgroundService: BackgroundService
         catch (Exception e)
         {
             _logger.LogError(e, "Произошла ошибка при обработке бронирования {id}", booking.Id);
-            
-            // Если произошла ошибка, отклоняем бронь
-            await _semaphore.WaitAsync(stoppingToken);
-            try
-            {
-                await bookingService.RejectBookingAsync(booking.Id, booking.EventId, stoppingToken);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-            
+           await bookingService.RejectBookingAsync(booking.Id, booking.EventId, stoppingToken);
         }
     }
 }

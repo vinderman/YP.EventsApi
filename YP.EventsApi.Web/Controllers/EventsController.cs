@@ -41,9 +41,9 @@ public class EventsController: ControllerBase
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<EventDto> GetEventById(Guid id)
+    public async Task<ActionResult<EventDto>> GetEventById(Guid id)
     {
-        var eventById = _eventService.GetById(id);
+        var eventById = await _eventService.GetById(id);
         return Ok(eventById);
     }
     
@@ -54,7 +54,7 @@ public class EventsController: ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public ActionResult<EventDto> CreateEvent([FromBody] EventCreateDto eventCreateDto)
+    public async Task<ActionResult<EventDto>> CreateEvent([FromBody] EventCreateDto eventCreateDto)
     {
         var validateResult = _eventCreateDtoValidator.Validate(eventCreateDto);
         if (!validateResult.IsValid)
@@ -62,7 +62,7 @@ public class EventsController: ControllerBase
             throw new ValidationException("Произошла ошибка", validateResult.Errors);
         }
         
-        var createdEvent = _eventService.Create(eventCreateDto);
+        var createdEvent = await _eventService.Create(eventCreateDto);
         var uri = Url.Action(nameof(GetEventById), new { id = createdEvent.Id });
         
         return Created(uri, createdEvent);
@@ -77,7 +77,7 @@ public class EventsController: ControllerBase
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public ActionResult<EventDto> UpdateEvent([FromRoute] Guid id, [FromBody] EventCreateDto eventCreateDto)
+    public async Task<ActionResult<EventDto>> UpdateEvent([FromRoute] Guid id, [FromBody] EventCreateDto eventCreateDto)
     {
         var validateResult = _eventCreateDtoValidator.Validate(eventCreateDto);
         if (!validateResult.IsValid)
@@ -85,7 +85,7 @@ public class EventsController: ControllerBase
             throw new ValidationException("Произошла ошибка", validateResult.Errors);
         }
         
-        var createdEvent = _eventService.Update(id, eventCreateDto);
+        var createdEvent = await _eventService.Update(id, eventCreateDto);
         
         return Ok(createdEvent);
     }
@@ -97,9 +97,9 @@ public class EventsController: ControllerBase
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(IActionResult), StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public IActionResult DeleteEvent(Guid id)
+    public async Task<IActionResult> DeleteEvent(Guid id)
     {
-        _eventService.Delete(id); 
+        await _eventService.Delete(id); 
         
         return NoContent();
     }
