@@ -1,50 +1,45 @@
-using AutoMapper;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using YP.EventApi.Web.Infrastructure;
-using Yp.EventsApi.Services.DataAccess;
+using Moq;
+using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Exceptions;
-using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Services.Interfaces;
 using Yp.EventsApi.Services.Services.EventService;
-using Yp.EventsApi.Shared.Contracts;
-using Yp.EventsApi.Shared.Models;
+using Yp.EventsApi.Tests.Common;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
 
 public class EventServicesFindByIdTests
 {
-    private readonly IEventService _service;
-    
-    private readonly string dbName = Guid.NewGuid().ToString();
-    public EventServicesFindByIdTests()
-    {
-        var logger = new LoggerFactory();
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), logger);
-        var mapper = config.CreateMapper();
-        var services = new ServiceCollection();
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase(dbName)); 
-        var db = services.BuildServiceProvider().GetService<AppDbContext>();
-        _service = new EventService(mapper, db);
-    }
-    
+    private readonly IMapper _mapper = ServiceTestFactory.CreateMapper();
+
     [Fact]
-    public async Task EventService_GetEventByExistingId()
+    public async Task GetById_ReturnsMappedDto_WhenEventExists()
     {
-        var existingId = (await _service.GetAll(new EventFilter())).Items.FirstOrDefault()!.Id;
-        var result = await _service.GetById(existingId);
-        
-        Assert.NotNull(result);
-        Assert.Equal(existingId, result.Id);
-        Assert.IsType<EventDto>(result);
+        var eventId = Guid.NewGuid();
+        var entity = Event.CreateInstance(eventId, "Test", DateTime.UtcNow, DateTime.UtcNow.AddHours(1), 5);
+
+        var eventRepository = new Mock<IEventRepository>();
+        eventRepository
+            .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+
+        var service = new EventService(_mapper, eventRepository.Object, Mock.Of<IUnitOfWork>());
+        var result = await service.GetById(eventId, CancellationToken.None);
+
+        Assert.Equal(eventId, result.Id);
+        Assert.Equal("Test", result.Title);
     }
-    
+
     [Fact]
-    public async Task EventService_GetEventByNotExistingId()
+    public async Task GetById_ThrowsEntityNotFoundException_WhenEventMissing()
     {
-        var id = Guid.NewGuid();
-        
-        await Assert.ThrowsAsync<EntityNotFoundException>(async() => await _service.GetById(id));
+        var eventRepository = new Mock<IEventRepository>();
+        eventRepository
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Event?)null);
+
+        var service = new EventService(_mapper, eventRepository.Object, Mock.Of<IUnitOfWork>());
+
+        await Assert.ThrowsAsync<EntityNotFoundException>(
+            () => service.GetById(Guid.NewGuid(), CancellationToken.None));
     }
 }

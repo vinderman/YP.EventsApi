@@ -68,7 +68,7 @@ public class EventService: IEventService
             throw new EntityNotFoundException($"Не удалось обновить событие. Событие с идентификатором {eventId} не найдено");
         }
 
-        existingEvent = _mapper.Map<Event>(eventCreateDto);
+        _mapper.Map(eventCreateDto, existingEvent);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         
         return _mapper.Map<EventDto>(existingEvent);

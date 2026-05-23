@@ -23,4 +23,9 @@
         <Using Include="Xunit"/>
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Yp.EventsApi.DataAccess\Yp.EventsApi.DataAccess.csproj" />
+      <ProjectReference Include="..\YP.EventsApi.Web\YP.EventsApi.Web.csproj" />
+    </ItemGroup>
+
 </Project>
