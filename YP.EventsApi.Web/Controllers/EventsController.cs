@@ -27,9 +27,9 @@ public class EventsController: ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResult<EventDto>), StatusCodes.Status200OK)]
-    public ActionResult<IEnumerable<EventDto>> GetEvents([FromQuery] EventFilter filter, CancellationToken cancellationToken)
+    public async Task<ActionResult<PaginatedResult<EventDto>>> GetEvents([FromQuery] EventFilter filter, CancellationToken cancellationToken)
     {
-        var events = _eventService.GetAll(filter, cancellationToken);
+        var events = await _eventService.GetAll(filter, cancellationToken);
         
         return Ok(events);
     }

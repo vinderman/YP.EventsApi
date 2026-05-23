@@ -14,7 +14,7 @@ public class Booking
        
         return new Booking
         {
-            Id = Guid.NewGuid(),
+            Id = id,
             EventId = eventId,
             Status = status,
             CreatedAt = DateTime.UtcNow,
