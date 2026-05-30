@@ -16,7 +16,7 @@ public class Event
         }
         return new Event
         {
-            Id = Guid.NewGuid(),
+            Id = id,
             Title = title,
             StartAt = startAt,
             EndAt = endAt,

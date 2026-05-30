@@ -27,9 +27,9 @@ public class EventsController: ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(PaginatedResult<EventDto>), StatusCodes.Status200OK)]
-    public ActionResult<IEnumerable<EventDto>> GetEvents([FromQuery] EventFilter filter)
+    public async Task<ActionResult<PaginatedResult<EventDto>>> GetEvents([FromQuery] EventFilter filter, CancellationToken cancellationToken)
     {
-        var events = _eventService.GetAll(filter);
+        var events = await _eventService.GetAll(filter, cancellationToken);
         
         return Ok(events);
     }
@@ -37,24 +37,22 @@ public class EventsController: ControllerBase
     /// <summary>
     /// Получить событие по идентификатору
     /// </summary>
-    /// <param name="id"></param>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<EventDto>> GetEventById(Guid id)
+    public async Task<ActionResult<EventDto>> GetEventById(Guid id, CancellationToken cancellationToken)
     {
-        var eventById = await _eventService.GetById(id);
+        var eventById = await _eventService.GetById(id, cancellationToken);
         return Ok(eventById);
     }
     
     /// <summary>
     /// Создать событие
     /// </summary>
-    /// /// <param name="eventCreateDto">Модель создания события</param>
     [HttpPost]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<EventDto>> CreateEvent([FromBody] EventCreateDto eventCreateDto)
+    public async Task<ActionResult<EventDto>> CreateEvent([FromBody] EventCreateDto eventCreateDto, CancellationToken cancellationToken)
     {
         var validateResult = _eventCreateDtoValidator.Validate(eventCreateDto);
         if (!validateResult.IsValid)
@@ -62,7 +60,7 @@ public class EventsController: ControllerBase
             throw new ValidationException("Произошла ошибка", validateResult.Errors);
         }
         
-        var createdEvent = await _eventService.Create(eventCreateDto);
+        var createdEvent = await _eventService.Create(eventCreateDto, cancellationToken);
         var uri = Url.Action(nameof(GetEventById), new { id = createdEvent.Id });
         
         return Created(uri, createdEvent);
@@ -71,13 +69,11 @@ public class EventsController: ControllerBase
     /// <summary>
     /// Обновить событие
     /// </summary>
-    /// <param name="id"></param>
-    /// <param name="eventCreateDto">Модель события</param>
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<EventDto>> UpdateEvent([FromRoute] Guid id, [FromBody] EventCreateDto eventCreateDto)
+    public async Task<ActionResult<EventDto>> UpdateEvent([FromRoute] Guid id, [FromBody] EventCreateDto eventCreateDto, CancellationToken cancellationToken)
     {
         var validateResult = _eventCreateDtoValidator.Validate(eventCreateDto);
         if (!validateResult.IsValid)
@@ -85,7 +81,7 @@ public class EventsController: ControllerBase
             throw new ValidationException("Произошла ошибка", validateResult.Errors);
         }
         
-        var createdEvent = await _eventService.Update(id, eventCreateDto);
+        var createdEvent = await _eventService.Update(id, eventCreateDto, cancellationToken);
         
         return Ok(createdEvent);
     }
@@ -93,13 +89,12 @@ public class EventsController: ControllerBase
     /// <summary>
     /// Удалить событие
     /// </summary>
-    /// <param name="id"></param>
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(IActionResult), StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteEvent(Guid id)
+    public async Task<IActionResult> DeleteEvent(Guid id, CancellationToken cancellationToken)
     {
-        await _eventService.Delete(id); 
+        await _eventService.Delete(id, cancellationToken); 
         
         return NoContent();
     }

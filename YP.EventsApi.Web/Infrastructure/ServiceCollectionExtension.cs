@@ -1,9 +1,9 @@
-using System.Reflection;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using YP.EventApi.Web.Validators;
-using Yp.EventsApi.Services.DataAccess;
-using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.DataAccess;
+using Yp.EventsApi.DataAccess.Repositories;
+using Yp.EventsApi.Services.Interfaces;
 using Yp.EventsApi.Services.Services.BackgroundServices;
 using Yp.EventsApi.Services.Services.BookingService;
 using Yp.EventsApi.Services.Services.EventService;
@@ -20,6 +20,13 @@ public static class ServiceCollectionExtension
         services.AddHostedService<BookingProcessorBackgroundService>();
         return services;
     }
+    
+    public static IServiceCollection AddApplicationRepositories(this IServiceCollection services)
+    {
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        return services;
+    }
 
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
@@ -27,6 +34,7 @@ public static class ServiceCollectionExtension
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connection));
         services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
         services.AddScoped<IValidator<EventCreateDto>, EventCreateDtoValidator>();
+        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
         return services;
     }

@@ -63,7 +63,7 @@ public class BookingProcessorBackgroundService: BackgroundService
         try
         {
             // убеждаемся, что событие существует
-            await eventService.GetById(booking.EventId);
+            await eventService.GetById(booking.EventId, stoppingToken);
         }
         catch (EntityNotFoundException e)
         {

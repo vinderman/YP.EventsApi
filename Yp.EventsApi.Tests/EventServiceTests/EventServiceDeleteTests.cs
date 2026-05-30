@@ -1,52 +1,47 @@
-using AutoMapper;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using YP.EventApi.Web.Infrastructure;
-using Yp.EventsApi.Services.DataAccess;
+using Moq;
+using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Exceptions;
-using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Services.Interfaces;
 using Yp.EventsApi.Services.Services.EventService;
-using Yp.EventsApi.Shared.Models;
+using Yp.EventsApi.Tests.Common;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
 
 public class EventServiceDeleteTests
 {
-    private readonly IEventService _service;
-    
-    private readonly string dbName = Guid.NewGuid().ToString();
-    
-    public EventServiceDeleteTests()
-    {
-        var logger = new LoggerFactory();
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), logger);
-        var mapper = config.CreateMapper();
-        var services = new ServiceCollection();
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase(dbName)); 
-        var db = services.BuildServiceProvider().GetService<AppDbContext>();
-        _service = new EventService(mapper, db);
-    }
-    
+    private readonly IMapper _mapper = ServiceTestFactory.CreateMapper();
+
     [Fact]
-    public async Task EventService_DeleteEventWithExistingId()
+    public async Task Delete_RemovesEventAndSavesChanges()
     {
-        var allEvents = await _service.GetAll(new EventFilter());
-        var allEventsCount = allEvents.Total;
-        var existingId = allEvents.Items.FirstOrDefault()!.Id;
-        
-        _service.Delete(existingId);
-        
-        var newCount = (await _service.GetAll(new EventFilter())).Total;
-        
-        Assert.Equal(allEventsCount - 1, newCount);
+        var eventId = Guid.NewGuid();
+        var entity = Event.CreateInstance(eventId, "Test", DateTime.UtcNow, DateTime.UtcNow.AddHours(1), 3);
+
+        var eventRepository = new Mock<IEventRepository>();
+        eventRepository
+            .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(entity);
+
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var service = new EventService(_mapper, eventRepository.Object, unitOfWork.Object);
+
+        await service.Delete(eventId, CancellationToken.None);
+
+        eventRepository.Verify(r => r.Remove(eventId), Times.Once);
+        unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task EventService_DeleteEventThrowsWhenEventNotFound()
+    public async Task Delete_ThrowsEntityNotFoundException_WhenEventMissing()
     {
-        var id = Guid.NewGuid();
-        await Assert.ThrowsAsync<EntityNotFoundException>(async () => await _service.Delete(id));
+        var eventRepository = new Mock<IEventRepository>();
+        eventRepository
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Event?)null);
+
+        var service = new EventService(_mapper, eventRepository.Object, Mock.Of<IUnitOfWork>());
+
+        await Assert.ThrowsAsync<EntityNotFoundException>(
+            () => service.Delete(Guid.NewGuid(), CancellationToken.None));
     }
 }
