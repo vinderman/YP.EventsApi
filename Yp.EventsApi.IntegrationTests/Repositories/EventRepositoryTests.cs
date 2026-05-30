@@ -1,3 +1,4 @@
+using Yp.EventsApi.DataAccess;
 using Yp.EventsApi.DataAccess.Repositories;
 using Yp.EventsApi.IntegrationTests.Infrastructure;
 using Yp.EventsApi.Services.Entities;
@@ -114,12 +115,44 @@ public class EventRepositoryTests
     }
 
     [Fact]
+    public async Task GetByIdForUpdateAsync_ReturnsEvent_WhenExists()
+    {
+        await using var context = _fixture.CreateContext();
+        await DatabaseCleaner.CleanAsync(context);
+        var seeded = TestDataSeed.SeedEvent(context);
+
+        var repository = new EventRepository(context);
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        var result = await repository.GetByIdForUpdateAsync(seeded.Id);
+        await transaction.CommitAsync();
+
+        Assert.NotNull(result);
+        Assert.Equal(seeded.Id, result.Id);
+        Assert.Equal(seeded.AvailableSeats, result.AvailableSeats);
+    }
+
+    [Fact]
+    public async Task GetByIdForUpdateAsync_ReturnsNull_WhenNotExists()
+    {
+        await using var context = _fixture.CreateContext();
+        await DatabaseCleaner.CleanAsync(context);
+
+        var repository = new EventRepository(context);
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        var result = await repository.GetByIdForUpdateAsync(Guid.NewGuid());
+        await transaction.CommitAsync();
+
+        Assert.Null(result);
+    }
+
+    [Fact]
     public async Task AddAsync_AndRemove_PersistChanges()
     {
         await using var context = _fixture.CreateContext();
         await DatabaseCleaner.CleanAsync(context);
 
         var repository = new EventRepository(context);
+        var unitOfWork = new EfUnitOfWork(context);
         var entity = Event.CreateInstance(
             Guid.NewGuid(),
             "Новое событие",
@@ -128,12 +161,12 @@ public class EventRepositoryTests
             5);
 
         await repository.AddAsync(entity);
-        await context.SaveChangesAsync();
+        await unitOfWork.SaveChangesAsync();
 
         Assert.NotNull(await repository.GetByIdAsync(entity.Id));
 
         repository.Remove(entity.Id);
-        await context.SaveChangesAsync();
+        await unitOfWork.SaveChangesAsync();
 
         Assert.Null(await repository.GetByIdAsync(entity.Id));
     }

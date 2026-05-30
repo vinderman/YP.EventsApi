@@ -1,3 +1,4 @@
+using Yp.EventsApi.DataAccess;
 using Yp.EventsApi.DataAccess.Repositories;
 using Yp.EventsApi.IntegrationTests.Infrastructure;
 using Yp.EventsApi.Services.Entities;
@@ -21,15 +22,28 @@ public class BookingRepositoryTests
 
         var repository = new BookingRepository(context);
         var booking = Booking.CreateInstance(Guid.NewGuid(), eventEntity.Id, BookingStatus.Pending);
+        var unitOfWork = new EfUnitOfWork(context);
 
         await repository.CreateAsync(booking);
-        await context.SaveChangesAsync();
+        await unitOfWork.SaveChangesAsync();
 
         var loaded = await repository.GetByIdAsync(booking.Id);
 
         Assert.NotNull(loaded);
         Assert.Equal(booking.Id, loaded.Id);
         Assert.Equal(BookingStatus.Pending, loaded.Status);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_ReturnsNull_WhenNotExists()
+    {
+        await using var context = _fixture.CreateContext();
+        await DatabaseCleaner.CleanAsync(context);
+
+        var repository = new BookingRepository(context);
+        var result = await repository.GetByIdAsync(Guid.NewGuid());
+
+        Assert.Null(result);
     }
 
     [Fact]
@@ -40,13 +54,14 @@ public class BookingRepositoryTests
         var eventEntity = TestDataSeed.SeedEvent(context);
 
         var repository = new BookingRepository(context);
+        var unitOfWork = new EfUnitOfWork(context);
         var pending = Booking.CreateInstance(Guid.NewGuid(), eventEntity.Id, BookingStatus.Pending);
         var confirmed = Booking.CreateInstance(Guid.NewGuid(), eventEntity.Id, BookingStatus.Confirmed);
         confirmed.Status = BookingStatus.Confirmed;
 
         await repository.CreateAsync(pending);
         await repository.CreateAsync(confirmed);
-        await context.SaveChangesAsync();
+        await unitOfWork.SaveChangesAsync();
 
         var pendingBookings = await repository.GetAllByStatusAsync(BookingStatus.Pending);
 
