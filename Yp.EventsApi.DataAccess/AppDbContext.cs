@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Yp.EventsApi.Services.Entities;
 
-namespace Yp.EventsApi.Services.DataAccess;
+namespace Yp.EventsApi.DataAccess;
 
 public sealed class AppDbContext : DbContext
 {

@@ -10,10 +10,15 @@
 
     <ItemGroup>
         <PackageReference Include="FluentValidation" Version="12.1.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Yp.EventsApi.DataAccess\Yp.EventsApi.DataAccess.csproj" />
       <ProjectReference Include="..\Yp.EventsApi.Services\Yp.EventsApi.Services.csproj" />
       <ProjectReference Include="..\Yp.EventsApi.Shared\Yp.EventsApi.Shared.csproj" />
     </ItemGroup>

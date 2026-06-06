@@ -1,54 +1,37 @@
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.InMemory.Storage.Internal;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using YP.EventApi.Web.Infrastructure;
-using Yp.EventsApi.Services.DataAccess;
-using Yp.EventsApi.Services.Services;
+using Moq;
+using Yp.EventsApi.Services.Entities;
+using Yp.EventsApi.Services.Interfaces;
 using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Contracts;
+using Yp.EventsApi.Tests.Common;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
 
-/// <summary>
-/// Класс для тестов на функционал добавление событий
-/// </summary>
 public class EventServiceAddTests
 {
-    private readonly IEventService _service;
-    
-    private readonly string dbName = Guid.NewGuid().ToString();
-    
-    public EventServiceAddTests()
-    {
-        var logger = new LoggerFactory();
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), logger);
-        var mapper = config.CreateMapper();
-        var services = new ServiceCollection();
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase(dbName)); 
-        var db = services.BuildServiceProvider().GetService<AppDbContext>();
-        _service = new EventService(mapper, db);
-    }
-    
+    private readonly IMapper _mapper = ServiceTestFactory.CreateMapper();
+
     [Fact]
-    public async Task EventService_AddEvent()
+    public async Task Create_AddsEventAndSavesChanges()
     {
-        var startAt = DateTime.UtcNow;
-        var createEventDto = new EventCreateDto
+        var eventRepository = new Mock<IEventRepository>();
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var service = new EventService(_mapper, eventRepository.Object, unitOfWork.Object);
+
+        var dto = new EventCreateDto
         {
             Title = "Test Event",
-            StartAt = startAt,
-            EndAt = startAt.AddHours(1),
+            StartAt = DateTime.UtcNow,
+            EndAt = DateTime.UtcNow.AddHours(1),
             TotalSeats = 10
         };
 
-        // Act
-        var result = await _service.Create(createEventDto);
+        var result = await service.Create(dto, CancellationToken.None);
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.NotEqual(result.Id, Guid.Empty);
+        eventRepository.Verify(r => r.AddAsync(It.IsAny<Event>(), It.IsAny<CancellationToken>()), Times.Once);
+        unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.NotEqual(Guid.Empty, result.Id);
+        Assert.Equal(dto.Title, result.Title);
     }
 }

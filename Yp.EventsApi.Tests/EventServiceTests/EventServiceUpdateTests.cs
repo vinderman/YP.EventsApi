@@ -1,55 +1,63 @@
-using AutoMapper;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using YP.EventApi.Web.Infrastructure;
-using Yp.EventsApi.Services.DataAccess;
+using Moq;
+using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Exceptions;
-using Yp.EventsApi.Services.Services;
+using Yp.EventsApi.Services.Interfaces;
 using Yp.EventsApi.Services.Services.EventService;
 using Yp.EventsApi.Shared.Contracts;
-using Yp.EventsApi.Shared.Models;
+using Yp.EventsApi.Tests.Common;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
 
 public class EventServiceUpdateTests
 {
-    private readonly IEventService _service;
-    
-    private readonly string dbName = Guid.NewGuid().ToString();
-    public EventServiceUpdateTests()
-    {
-        var logger = new LoggerFactory();
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), logger);
-        var mapper = config.CreateMapper();
-        var services = new ServiceCollection();
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseInMemoryDatabase(dbName)); 
-        var db = services.BuildServiceProvider().GetService<AppDbContext>();
-        _service = new EventService(mapper, db);
-    }
-    
+    private readonly IMapper _mapper = ServiceTestFactory.CreateMapper();
+
     [Fact]
-    public async Task EventService_UpdateEvent()
+    public async Task Update_UpdatesExistingEventAndSavesChanges()
     {
-        var existingId = (await _service.GetAll(new EventFilter())).Items.FirstOrDefault()!.Id;
-        var createEventDto = new EventCreateDto { Title = "Test Event", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow };
-        
-        var updatedEvent = await _service.Update(existingId, createEventDto);
-        
-        Assert.NotNull(updatedEvent);
-        Assert.Equal(existingId, updatedEvent.Id);
-        Assert.Equal(createEventDto.Title, updatedEvent.Title);
-        Assert.Equal(createEventDto.StartAt, updatedEvent.StartAt);
-        Assert.Equal(createEventDto.EndAt, updatedEvent.EndAt);
+        var eventId = Guid.NewGuid();
+        var existing = Event.CreateInstance(eventId, "Old", DateTime.UtcNow, DateTime.UtcNow.AddHours(1), 5);
+        var dto = new EventCreateDto
+        {
+            Title = "New title",
+            StartAt = DateTime.UtcNow.AddDays(1),
+            EndAt = DateTime.UtcNow.AddDays(2),
+            TotalSeats = 10
+        };
+
+        var eventRepository = new Mock<IEventRepository>();
+        eventRepository
+            .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing);
+
+        var unitOfWork = new Mock<IUnitOfWork>();
+        var service = new EventService(_mapper, eventRepository.Object, unitOfWork.Object);
+
+        var result = await service.Update(eventId, dto, CancellationToken.None);
+
+        unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        Assert.Equal(eventId, result.Id);
+        Assert.Equal(dto.Title, result.Title);
     }
-    
+
     [Fact]
-    public async Task EventService_UpdateEventWithNotExistingId()
+    public async Task Update_ThrowsEntityNotFoundException_WhenEventMissing()
     {
-        var id = Guid.NewGuid();
-        var createEventDto = new EventCreateDto { Title = "Test Event", StartAt = DateTime.UtcNow, EndAt = DateTime.UtcNow };
-        
-        await Assert.ThrowsAsync<EntityNotFoundException>(async () => await _service.Update(id, createEventDto));
+        var eventRepository = new Mock<IEventRepository>();
+        eventRepository
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Event?)null);
+
+        var service = new EventService(_mapper, eventRepository.Object, Mock.Of<IUnitOfWork>());
+        var dto = new EventCreateDto
+        {
+            Title = "Test",
+            StartAt = DateTime.UtcNow,
+            EndAt = DateTime.UtcNow,
+            TotalSeats = 1
+        };
+
+        await Assert.ThrowsAsync<EntityNotFoundException>(
+            () => service.Update(Guid.NewGuid(), dto, CancellationToken.None));
     }
 }

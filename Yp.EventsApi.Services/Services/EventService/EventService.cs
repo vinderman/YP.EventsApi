@@ -1,8 +1,7 @@
 using AutoMapper;
-using Microsoft.EntityFrameworkCore;
-using Yp.EventsApi.Services.DataAccess;
 using Yp.EventsApi.Services.Entities;
 using Yp.EventsApi.Services.Exceptions;
+using Yp.EventsApi.Services.Interfaces;
 using Yp.EventsApi.Shared.Contracts;
 using Yp.EventsApi.Shared.Models;
 
@@ -14,37 +13,20 @@ namespace Yp.EventsApi.Services.Services.EventService;
 public class EventService: IEventService
 {
     private readonly IMapper _mapper;
-    private readonly AppDbContext _context;
+    private readonly IEventRepository _eventRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public EventService(IMapper mapper, AppDbContext context)
+    public EventService(IMapper mapper, IEventRepository eventRepository, IUnitOfWork unitOfWork)
     {
-        _context = context;
+        _eventRepository = eventRepository;
+        _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
 
     
-    public async Task<PaginatedResult<EventDto>> GetAll(EventFilter filter)
+    public async Task<PaginatedResult<EventDto>> GetAll(EventFilter filter, CancellationToken cancellationToken = default)
     {
-        var query = _context.Events.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(filter.Title))
-        {
-            query = query.Where(e => e.Title.Contains(filter.Title, StringComparison.InvariantCultureIgnoreCase));
-        }
-
-        if (filter.From.HasValue)
-        {
-            query = query.Where(e => e.StartAt >= filter.From);
-        }
-
-        if (filter.To.HasValue)
-        {
-            query = query.Where(e => e.EndAt <= filter.To);
-        }
-        
-        var totalCount = query.Count();
-        
-        var events = await query.Skip((filter.Page - 1) * filter.PageSize).Take(filter.PageSize).ToListAsync();
+        var (events, totalCount) = await _eventRepository.GetPagedAsync(filter, cancellationToken);
         
         return new PaginatedResult<EventDto>
         {
@@ -56,9 +38,9 @@ public class EventService: IEventService
         };
     }
     
-    public async Task<EventDto> GetById(Guid id)
+    public async Task<EventDto> GetById(Guid id, CancellationToken cancellationToken = default)
     {
-        var result = await _context.Events.FirstOrDefaultAsync(e => e.Id == id);
+        var result = await _eventRepository.GetByIdAsync(id, cancellationToken);
 
         if (result == null)
         {
@@ -68,40 +50,40 @@ public class EventService: IEventService
         return _mapper.Map<EventDto>(result);
     }
 
-    public async Task<EventDto> Create(EventCreateDto eventCreateDto)
+    public async Task<EventDto> Create(EventCreateDto eventCreateDto, CancellationToken cancellationToken)
     {
         var newEvent = Event.CreateInstance(Guid.NewGuid(), eventCreateDto.Title, eventCreateDto.StartAt, eventCreateDto.EndAt, eventCreateDto.TotalSeats, eventCreateDto.Description);
         
-        _context.Events.Add(newEvent);
-        await _context.SaveChangesAsync();
+        await _eventRepository.AddAsync(newEvent, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         return _mapper.Map<EventDto>(newEvent);
     }
 
-    public async Task<EventDto> Update(Guid eventId, EventCreateDto eventCreateDto)
+    public async Task<EventDto> Update(Guid eventId, EventCreateDto eventCreateDto, CancellationToken cancellationToken)
     {
-        var existingEvent = _context.Events.FirstOrDefault(e => e.Id == eventId);
+        var existingEvent = await _eventRepository.GetByIdAsync(eventId, cancellationToken);
 
         if (existingEvent == null)
         {
             throw new EntityNotFoundException($"Не удалось обновить событие. Событие с идентификатором {eventId} не найдено");
         }
 
-        existingEvent = _mapper.Map<Event>(eventCreateDto);
-        await _context.SaveChangesAsync();
+        _mapper.Map(eventCreateDto, existingEvent);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         
         return _mapper.Map<EventDto>(existingEvent);
     }
 
 
-    public async Task<bool> TryReserveSeats(Guid eventId, int seatsCount = 1)
+    public async Task<bool> TryReserveSeats(Guid eventId, int seatsCount = 1, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-        var currentEvent = await LoadEventForUpdateAsync(eventId);
+        var currentEvent = await _eventRepository.GetByIdForUpdateAsync(eventId, cancellationToken);
 
         if (currentEvent == null)
         {
-            await transaction.RollbackAsync();
+            await transaction.RollbackAsync(cancellationToken);
             throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {eventId} не найдено");
         }
 
@@ -109,26 +91,26 @@ public class EventService: IEventService
 
         if (!isReserved)
         {
-            await transaction.RollbackAsync();
+            await transaction.RollbackAsync(cancellationToken);
             throw new NoAvailableSeatsException("Для данного события нет доступных мест");
         }
 
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return true;
     }
 
-    public async Task<bool> ReleaseSeats(Guid eventId, int seatsCount = 1)
+    public async Task<bool> ReleaseSeats(Guid eventId, int seatsCount = 1, CancellationToken cancellationToken = default)
     {
         if (seatsCount <= 0)
         {
             return false;
         }
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using var transaction = await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-        var currentEvent = await LoadEventForUpdateAsync(eventId);
+        var currentEvent = await _eventRepository.GetByIdForUpdateAsync(eventId, cancellationToken);
 
         if (currentEvent == null)
         {
@@ -137,30 +119,22 @@ public class EventService: IEventService
         }
 
         currentEvent.ReleaseSeats(seatsCount);
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return true;
     }
 
-    /// <summary>
-    /// Загружает событие с блокировкой строки (<c>SELECT … FOR UPDATE</c>) в рамках активной транзакции контекста.
-    /// </summary>
-    private async Task<Event?> LoadEventForUpdateAsync(Guid eventId)
+    public async Task Delete(Guid eventId, CancellationToken cancellationToken = default)
     {
-        return await _context.Events.FromSqlInterpolated($"SELECT * FROM \"Events\" WHERE \"Id\" = {eventId} FOR UPDATE").FirstOrDefaultAsync();
-    }
-
-    public async Task Delete(Guid eventId)
-    {
-        var eventToDelete = await _context.Events.FirstOrDefaultAsync(e => e.Id == eventId);
+        var eventToDelete = await _eventRepository.GetByIdAsync(eventId, cancellationToken);
 
         if (eventToDelete == null)
         {
             throw new EntityNotFoundException($"Не удалось удалить событие. Событие с идентификатором {eventId} не найдено");
         }
         
-        _context.Events.Remove(eventToDelete);
-        await _context.SaveChangesAsync();
+        _eventRepository.Remove(eventToDelete.Id);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

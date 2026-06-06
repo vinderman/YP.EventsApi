@@ -5,6 +5,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YP.EventsApi.Web", "YP.Even
 	ProjectSection(ProjectDependencies) = postProject
 		{AC209359-ECC4-4A71-95A1-AA66428746C7} = {AC209359-ECC4-4A71-95A1-AA66428746C7}
 		{E2F2349C-8810-4929-B465-71F59DC1B67C} = {E2F2349C-8810-4929-B465-71F59DC1B67C}
+		{547A7DBA-CB5F-4CD4-98BE-81E4C4DC59AA} = {547A7DBA-CB5F-4CD4-98BE-81E4C4DC59AA}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yp.EventsApi.Services", "Yp.EventsApi.Services\Yp.EventsApi.Services.csproj", "{AC209359-ECC4-4A71-95A1-AA66428746C7}"
@@ -17,6 +18,16 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yp.EventsApi.Tests", "Yp.EventsApi.Tests\Yp.EventsApi.Tests.csproj", "{2350444F-7B12-4951-BAAD-C9FA7CD1BA86}"
 	ProjectSection(ProjectDependencies) = postProject
 		{4B7CE8FF-87BC-4471-B00E-EC9625C626D1} = {4B7CE8FF-87BC-4471-B00E-EC9625C626D1}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yp.EventsApi.IntegrationTests", "Yp.EventsApi.IntegrationTests\Yp.EventsApi.IntegrationTests.csproj", "{CFCF5D47-3605-4C24-8F8B-3110ED915686}"
+	ProjectSection(ProjectDependencies) = postProject
+		{4B7CE8FF-87BC-4471-B00E-EC9625C626D1} = {4B7CE8FF-87BC-4471-B00E-EC9625C626D1}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yp.EventsApi.DataAccess", "Yp.EventsApi.DataAccess\Yp.EventsApi.DataAccess.csproj", "{547A7DBA-CB5F-4CD4-98BE-81E4C4DC59AA}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AC209359-ECC4-4A71-95A1-AA66428746C7} = {AC209359-ECC4-4A71-95A1-AA66428746C7}
 	EndProjectSection
 EndProject
 Global
@@ -37,6 +48,14 @@ Global
 		{2350444F-7B12-4951-BAAD-C9FA7CD1BA86}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2350444F-7B12-4951-BAAD-C9FA7CD1BA86}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2350444F-7B12-4951-BAAD-C9FA7CD1BA86}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFCF5D47-3605-4C24-8F8B-3110ED915686}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFCF5D47-3605-4C24-8F8B-3110ED915686}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFCF5D47-3605-4C24-8F8B-3110ED915686}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFCF5D47-3605-4C24-8F8B-3110ED915686}.Release|Any CPU.Build.0 = Release|Any CPU
+		{547A7DBA-CB5F-4CD4-98BE-81E4C4DC59AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{547A7DBA-CB5F-4CD4-98BE-81E4C4DC59AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{547A7DBA-CB5F-4CD4-98BE-81E4C4DC59AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{547A7DBA-CB5F-4CD4-98BE-81E4C4DC59AA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
