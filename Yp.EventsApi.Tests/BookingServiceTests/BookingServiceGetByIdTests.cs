@@ -1,19 +1,16 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Services.Exceptions;
-using Yp.EventsApi.Services.Interfaces;
-using Yp.EventsApi.Services.Services.BookingService;
-using Yp.EventsApi.Services.Services.EventService;
-using Yp.EventsApi.Shared.Contracts;
-using Yp.EventsApi.Shared.Enums;
-using Yp.EventsApi.Tests.Common;
+using Yp.EventsApi.Application.Exceptions;
+using Yp.EventsApi.Application.Interfaces;
+using Yp.EventsApi.Application.Services.BookingService;
+using Yp.EventsApi.Application.Services.EventService;
+using Yp.EventsApi.Domain.Entities;
+using Yp.EventsApi.Domain.Enums;
 
 namespace Yp.EventsApi.Tests.BookingServiceTests;
 
 public class BookingServiceGetByIdTests
 {
-    private readonly AutoMapper.IMapper _mapper = ServiceTestFactory.CreateMapper();
     private readonly ILogger<BookingService> _logger = Mock.Of<ILogger<BookingService>>();
 
     [Fact]
@@ -28,7 +25,6 @@ public class BookingServiceGetByIdTests
             .ReturnsAsync(booking);
 
         var service = new BookingService(
-            _mapper,
             _logger,
             Mock.Of<IEventService>(),
             bookingRepository.Object,
@@ -36,7 +32,7 @@ public class BookingServiceGetByIdTests
 
         var result = await service.GetBookingByIdAsync(bookingId);
 
-        Assert.IsType<BookingDto>(result);
+        Assert.IsType<Booking>(result);
         Assert.Equal(bookingId, result.Id);
     }
 
@@ -49,7 +45,6 @@ public class BookingServiceGetByIdTests
             .ReturnsAsync((Booking?)null);
 
         var service = new BookingService(
-            _mapper,
             _logger,
             Mock.Of<IEventService>(),
             bookingRepository.Object,

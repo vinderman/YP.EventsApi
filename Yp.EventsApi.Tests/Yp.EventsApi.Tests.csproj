@@ -18,12 +18,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="AutoMapper" />
         <Using Include="Xunit" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\YP.EventsApi.Web\YP.EventsApi.Web.csproj" />
+      <ProjectReference Include="..\Yp.EventsApi.Application\Yp.EventsApi.Application.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,5 +1,5 @@
-using Yp.EventsApi.DataAccess;
-using Yp.EventsApi.Services.Entities;
+using Yp.EventsApi.Domain.Entities;
+using Yp.EventsApi.Infrastructure;
 
 namespace Yp.EventsApi.IntegrationTests.Infrastructure;
 
