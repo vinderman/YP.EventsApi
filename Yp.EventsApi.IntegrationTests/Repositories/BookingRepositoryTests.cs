@@ -1,8 +1,8 @@
-using Yp.EventsApi.DataAccess;
-using Yp.EventsApi.DataAccess.Repositories;
+using Yp.EventsApi.Domain.Entities;
+using Yp.EventsApi.Domain.Enums;
+using Yp.EventsApi.Infrastructure;
+using Yp.EventsApi.Infrastructure.Repositories;
 using Yp.EventsApi.IntegrationTests.Infrastructure;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Shared.Enums;
 
 namespace Yp.EventsApi.IntegrationTests.Repositories;
 

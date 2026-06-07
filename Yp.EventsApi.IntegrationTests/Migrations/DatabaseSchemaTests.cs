@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Yp.EventsApi.Domain.Entities;
+using Yp.EventsApi.Domain.Enums;
 using Yp.EventsApi.IntegrationTests.Infrastructure;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Shared.Enums;
 
 namespace Yp.EventsApi.IntegrationTests.Migrations;
 

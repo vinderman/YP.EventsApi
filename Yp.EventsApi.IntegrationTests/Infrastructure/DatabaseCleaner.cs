@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Yp.EventsApi.DataAccess;
+using Yp.EventsApi.Infrastructure;
 
 namespace Yp.EventsApi.IntegrationTests.Infrastructure;
 

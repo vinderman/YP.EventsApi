@@ -1,15 +1,13 @@
 using Moq;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Services.Interfaces;
-using Yp.EventsApi.Services.Services.EventService;
-using Yp.EventsApi.Shared.Models;
-using Yp.EventsApi.Tests.Common;
+using Yp.EventsApi.Application.Interfaces;
+using Yp.EventsApi.Application.Models;
+using Yp.EventsApi.Application.Services.EventService;
+using Yp.EventsApi.Domain.Entities;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
 
 public class EventServiceGetAllTests
 {
-    private readonly IMapper _mapper = ServiceTestFactory.CreateMapper();
 
     [Fact]
     public async Task GetAll_MapsRepositoryResultToPaginatedDto()
@@ -26,7 +24,7 @@ public class EventServiceGetAllTests
             .Setup(r => r.GetPagedAsync(filter, It.IsAny<CancellationToken>()))
             .ReturnsAsync((events.Take(1).ToList(), 2));
 
-        var service = new EventService(_mapper, eventRepository.Object, Mock.Of<IUnitOfWork>());
+        var service = new EventService(eventRepository.Object, Mock.Of<IUnitOfWork>());
         var result = await service.GetAll(filter, CancellationToken.None);
 
         Assert.Equal(2, result.Total);

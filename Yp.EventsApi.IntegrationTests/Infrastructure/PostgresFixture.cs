@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
-using Yp.EventsApi.DataAccess;
+using Yp.EventsApi.Infrastructure;
 
 namespace Yp.EventsApi.IntegrationTests.Infrastructure;
 

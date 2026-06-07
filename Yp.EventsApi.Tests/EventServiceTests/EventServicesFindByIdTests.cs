@@ -1,15 +1,13 @@
 using Moq;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Services.Exceptions;
-using Yp.EventsApi.Services.Interfaces;
-using Yp.EventsApi.Services.Services.EventService;
-using Yp.EventsApi.Tests.Common;
+using Yp.EventsApi.Application.Exceptions;
+using Yp.EventsApi.Application.Interfaces;
+using Yp.EventsApi.Application.Services.EventService;
+using Yp.EventsApi.Domain.Entities;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
 
 public class EventServicesFindByIdTests
 {
-    private readonly IMapper _mapper = ServiceTestFactory.CreateMapper();
 
     [Fact]
     public async Task GetById_ReturnsMappedDto_WhenEventExists()
@@ -22,7 +20,7 @@ public class EventServicesFindByIdTests
             .Setup(r => r.GetByIdAsync(eventId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(entity);
 
-        var service = new EventService(_mapper, eventRepository.Object, Mock.Of<IUnitOfWork>());
+        var service = new EventService(eventRepository.Object, Mock.Of<IUnitOfWork>());
         var result = await service.GetById(eventId, CancellationToken.None);
 
         Assert.Equal(eventId, result.Id);
@@ -37,7 +35,7 @@ public class EventServicesFindByIdTests
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Event?)null);
 
-        var service = new EventService(_mapper, eventRepository.Object, Mock.Of<IUnitOfWork>());
+        var service = new EventService(eventRepository.Object, Mock.Of<IUnitOfWork>());
 
         await Assert.ThrowsAsync<EntityNotFoundException>(
             () => service.GetById(Guid.NewGuid(), CancellationToken.None));
