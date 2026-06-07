@@ -14,12 +14,4 @@
       <ProjectReference Include="..\Yp.EventsApi.Domain\Yp.EventsApi.Domain.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Compile Remove="Interfaces\IBookingRepository.cs" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Interfaces\" />
-    </ItemGroup>
-
 </Project>

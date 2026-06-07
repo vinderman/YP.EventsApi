@@ -54,8 +54,8 @@ public class EventRepository: IEventRepository
         await _dbContext.Events.AddAsync(addEvent, cancellationToken);
     }
 
-    public void Remove(Guid eventId)
+    public void Remove(Event eventToDelete)
     {
-         _dbContext.Remove(eventId);
+         _dbContext.Remove(eventToDelete);
     }
 }

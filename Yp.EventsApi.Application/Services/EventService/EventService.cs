@@ -136,7 +136,7 @@ public class EventService: IEventService
             throw new EntityNotFoundException($"Не удалось удалить событие. Событие с идентификатором {eventId} не найдено");
         }
         
-        _eventRepository.Remove(eventToDelete.Id);
+        _eventRepository.Remove(eventToDelete);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

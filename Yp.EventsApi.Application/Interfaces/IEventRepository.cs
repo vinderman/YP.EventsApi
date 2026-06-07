@@ -17,5 +17,5 @@ public interface IEventRepository
     
     Task AddAsync(Event createEvent, CancellationToken cancellationToken);
     
-    void Remove(Guid eventId);
+    void Remove(Event entity);
 }

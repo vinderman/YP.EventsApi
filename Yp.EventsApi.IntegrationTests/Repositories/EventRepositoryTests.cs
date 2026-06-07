@@ -165,7 +165,7 @@ public class EventRepositoryTests
 
         Assert.NotNull(await repository.GetByIdAsync(entity.Id));
 
-        repository.Remove(entity.Id);
+        repository.Remove(entity);
         await unitOfWork.SaveChangesAsync();
 
         Assert.Null(await repository.GetByIdAsync(entity.Id));

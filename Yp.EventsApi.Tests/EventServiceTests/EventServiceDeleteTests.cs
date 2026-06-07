@@ -26,7 +26,7 @@ public class EventServiceDeleteTests
 
         await service.Delete(eventId, CancellationToken.None);
 
-        eventRepository.Verify(r => r.Remove(eventId), Times.Once);
+        eventRepository.Verify(r => r.Remove(entity), Times.Once);
         unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
