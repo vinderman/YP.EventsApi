@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Yp.EventsApi.Application;
 using Yp.EventsApi.Infrastructure;
 using Yp.EventsApi.Presentation.Infrastructure;
 using Yp.EventsApi.Presentation.Middleware;
