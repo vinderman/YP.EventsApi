@@ -15,8 +15,4 @@
       <ProjectReference Include="..\Yp.EventsApi.Application\Yp.EventsApi.Application.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Compile Remove="Configurations\EventConfiguration.cs" />
-    </ItemGroup>
-
 </Project>

@@ -13,5 +13,9 @@
     <ItemGroup>
       <ProjectReference Include="..\Yp.EventsApi.Domain\Yp.EventsApi.Domain.csproj" />
     </ItemGroup>
+    
+    <ItemGroup>
+      <Folder Include="Exceptions\" />
+    </ItemGroup>
 
 </Project>

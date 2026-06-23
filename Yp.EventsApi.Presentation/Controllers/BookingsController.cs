@@ -1,3 +1,4 @@
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Yp.EventsApi.Application.Services.BookingService;
 using Yp.EventsApi.Presentation.Contracts;
@@ -9,10 +10,12 @@ namespace Yp.EventsApi.Presentation.Controllers;
 public class BookingsController : ControllerBase
 {
     private readonly IBookingService _bookingService;
+    private readonly IMapper _mapper;
     
-    public BookingsController(IBookingService bookingService)
+    public BookingsController(IBookingService bookingService, IMapper mapper)
     {
         _bookingService = bookingService;
+        _mapper = mapper;
     }
 
     /// <summary>
@@ -29,6 +32,6 @@ public class BookingsController : ControllerBase
     {
         var booking = await _bookingService.GetBookingByIdAsync(id, cancellationToken);
         
-        return Ok(booking);
+        return Ok(_mapper.Map<BookingDto>(booking));
     }
 }
