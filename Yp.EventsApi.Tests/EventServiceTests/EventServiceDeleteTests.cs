@@ -1,15 +1,14 @@
 using Moq;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Services.Exceptions;
-using Yp.EventsApi.Services.Interfaces;
-using Yp.EventsApi.Services.Services.EventService;
-using Yp.EventsApi.Tests.Common;
+using Yp.EventsApi.Application.Exceptions;
+using Yp.EventsApi.Application.Interfaces;
+using Yp.EventsApi.Application.Services.EventService;
+using Yp.EventsApi.Domain.Entities;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
 
 public class EventServiceDeleteTests
 {
-    private readonly IMapper _mapper = ServiceTestFactory.CreateMapper();
+    
 
     [Fact]
     public async Task Delete_RemovesEventAndSavesChanges()
@@ -23,11 +22,11 @@ public class EventServiceDeleteTests
             .ReturnsAsync(entity);
 
         var unitOfWork = new Mock<IUnitOfWork>();
-        var service = new EventService(_mapper, eventRepository.Object, unitOfWork.Object);
+        var service = new EventService(eventRepository.Object, unitOfWork.Object);
 
         await service.Delete(eventId, CancellationToken.None);
 
-        eventRepository.Verify(r => r.Remove(eventId), Times.Once);
+        eventRepository.Verify(r => r.Remove(entity), Times.Once);
         unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -39,7 +38,7 @@ public class EventServiceDeleteTests
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Event?)null);
 
-        var service = new EventService(_mapper, eventRepository.Object, Mock.Of<IUnitOfWork>());
+        var service = new EventService(eventRepository.Object, Mock.Of<IUnitOfWork>());
 
         await Assert.ThrowsAsync<EntityNotFoundException>(
             () => service.Delete(Guid.NewGuid(), CancellationToken.None));

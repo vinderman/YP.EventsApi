@@ -1,17 +1,15 @@
 using Microsoft.Extensions.Logging;
 using Moq;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Services.Interfaces;
-using Yp.EventsApi.Services.Services.BookingService;
-using Yp.EventsApi.Services.Services.EventService;
-using Yp.EventsApi.Shared.Enums;
-using Yp.EventsApi.Tests.Common;
+using Yp.EventsApi.Application.Interfaces;
+using Yp.EventsApi.Application.Services.BookingService;
+using Yp.EventsApi.Application.Services.EventService;
+using Yp.EventsApi.Domain.Entities;
+using Yp.EventsApi.Domain.Enums;
 
 namespace Yp.EventsApi.Tests.BookingServiceTests;
 
 public class BookingServiceUpdateTests
 {
-    private readonly AutoMapper.IMapper _mapper = ServiceTestFactory.CreateMapper();
     private readonly ILogger<BookingService> _logger = Mock.Of<ILogger<BookingService>>();
 
     [Fact]
@@ -27,7 +25,6 @@ public class BookingServiceUpdateTests
 
         var unitOfWork = new Mock<IUnitOfWork>();
         var service = new BookingService(
-            _mapper,
             _logger,
             Mock.Of<IEventService>(),
             bookingRepository.Object,
@@ -59,7 +56,6 @@ public class BookingServiceUpdateTests
 
         var unitOfWork = new Mock<IUnitOfWork>();
         var service = new BookingService(
-            _mapper,
             _logger,
             eventService.Object,
             bookingRepository.Object,

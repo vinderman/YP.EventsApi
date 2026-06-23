@@ -1,11 +1,8 @@
-using AutoMapper;
-using Microsoft.Extensions.Logging;
-using YP.EventApi.Web.Infrastructure;
-using Yp.EventsApi.DataAccess;
-using Yp.EventsApi.DataAccess.Repositories;
+using Yp.EventsApi.Application.Exceptions;
+using Yp.EventsApi.Application.Services.EventService;
+using Yp.EventsApi.Infrastructure;
+using Yp.EventsApi.Infrastructure.Repositories;
 using Yp.EventsApi.IntegrationTests.Infrastructure;
-using Yp.EventsApi.Services.Exceptions;
-using Yp.EventsApi.Services.Services.EventService;
 
 namespace Yp.EventsApi.IntegrationTests.Services;
 
@@ -56,10 +53,8 @@ public class EventServiceReserveSeatsTests
 
     private static IEventService CreateEventService(AppDbContext context)
     {
-        var logger = new LoggerFactory();
-        var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), logger).CreateMapper();
         var eventRepository = new EventRepository(context);
         var unitOfWork = new EfUnitOfWork(context);
-        return new EventService(mapper, eventRepository, unitOfWork);
+        return new EventService(eventRepository, unitOfWork);
     }
 }

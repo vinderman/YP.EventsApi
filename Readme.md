@@ -1,37 +1,36 @@
-### Запуск проекта
-1. В директории YP.EventsApi.Web/Properties создайте файл launchSettings.json со следующим содержимым
-    ```
-    {
-      "$schema": "http://json.schemastore.org/launchsettings.json",
-      "profiles": {
-        "http": {
-          "commandName": "Project",
-          "dotnetRunMessages": true,
-          "launchBrowser": true,
-          "launchUrl": "swagger",
-          "applicationUrl": "http://localhost:5133",
-          "environmentVariables": {
-            "ASPNETCORE_ENVIRONMENT": "Development"
-          }
-        },
-      }
-    }
-    ```
-2. Последовательно запустите команды:
+# YP.EventsApi
 
-    `dotnet build`
+REST API для управления событиями и бронированиями мест. Проект построен на **.NET 8** и **PostgreSQL** (EF Core).
 
-    `dotnet run --project YP.EventsApi.Web`
-3. Откройте браузер по <a href="http://localhost:5133/swagger/index.html">адресу</a> 
-
-### Запуск тестов
-
-В решении два тестовых проекта:
+## Структура решения
 
 | Проект | Назначение |
 |--------|------------|
+| `Yp.EventsApi.Domain` | Доменные сущности (`Event`, `Booking`), перечисления и доменные исключения |
+| `Yp.EventsApi.Application` | Сервисы, интерфейсы репозиториев, модели запросов и фильтров |
+| `Yp.EventsApi.Infrastructure` | EF Core (`AppDbContext`), репозитории, миграции, `UnitOfWork` |
+| `Yp.EventsApi.Presentation` | ASP.NET Core Web API: контроллеры, middleware, Swagger |
 | `Yp.EventsApi.Tests` | Юнит-тесты сервисов (зависимости подменяются через Moq) |
 | `Yp.EventsApi.IntegrationTests` | Интеграционные тесты репозиториев и сервисов с реальной PostgreSQL |
+
+## Запуск проекта
+
+**Требования:** .NET 8 SDK, запущенный экземпляр PostgreSQL.
+
+1. Настройте строку подключения в `Yp.EventsApi.Presentation/appsettings.Development.json` (`ConnectionStrings:DefaultConnection`).
+
+2. Соберите и запустите приложение:
+
+```bash
+dotnet build
+dotnet run --project Yp.EventsApi.Presentation
+```
+
+Профили запуска (`http`, `https`) уже описаны в `Yp.EventsApi.Presentation/Properties/launchSettings.json`. По умолчанию API доступен на `http://localhost:5133`, Swagger — на [http://localhost:5133/swagger/index.html](http://localhost:5133/swagger/index.html).
+
+При старте приложения миграции применяются автоматически (`db.Database.Migrate()` в `Program.cs`).
+
+## Запуск тестов
 
 Запуск всех тестов:
 
@@ -53,7 +52,7 @@ dotnet test Yp.EventsApi.IntegrationTests
 
 ### Интеграционные тесты и Testcontainers
 
-Проект `Yp.EventsApi.IntegrationTests` проверяет работу с БД через EF Core и репозитории (`EventRepository`, `BookingRepository`), а также сценарии сервисного слоя (например, резервирование мест).
+Проект `Yp.EventsApi.IntegrationTests` проверяет работу с БД через EF Core и репозитории (`EventRepository`, `BookingRepository`), схему миграций, а также сценарии сервисного слоя (резервирование мест, защита от овербукинга).
 
 Для изоляции от локальной базы используется [Testcontainers](https://dotnet.testcontainers.org/): перед прогоном тестов поднимается Docker-контейнер PostgreSQL (`postgres:16-alpine`), к нему применяются миграции, после чего выполняются тесты.
 
@@ -71,11 +70,9 @@ dotnet test Yp.EventsApi.IntegrationTests
 
 Если Docker недоступен, интеграционные тесты не запустятся (ошибка при старте контейнера).
 
-### Миграции EF Core
+## Миграции EF Core
 
-Миграции хранятся в проекте `Yp.EventsApi.DataAccess` (каталог `Migrations/`). Контекст — `AppDbContext`.
-
-При запуске веб-приложения (`YP.EventsApi.Web`) миграции применяются автоматически (`db.Database.Migrate()` в `Program.cs`). Для локальной разработки нужен доступный экземпляр PostgreSQL; строка подключения задаётся в `YP.EventsApi.Web/appsettings.Development.json` (`ConnectionStrings:DefaultConnection`).
+Миграции хранятся в проекте `Yp.EventsApi.Infrastructure` (каталог `Migrations/`). Контекст — `AppDbContext`.
 
 Для работы с миграциями из CLI нужен глобальный инструмент:
 
@@ -87,88 +84,127 @@ dotnet tool install --global dotnet-ef
 
 ```bash
 dotnet ef migrations add <ИмяМиграции> \
-  --project Yp.EventsApi.DataAccess \
-  --startup-project YP.EventsApi.Web
+  --project Yp.EventsApi.Infrastructure \
+  --startup-project Yp.EventsApi.Presentation
 ```
 
 Пример:
 
 ```bash
 dotnet ef migrations add AddEventVenue \
-  --project Yp.EventsApi.DataAccess \
-  --startup-project YP.EventsApi.Web
+  --project Yp.EventsApi.Infrastructure \
+  --startup-project Yp.EventsApi.Presentation
 ```
 
 **Применить миграции к базе** (без запуска приложения):
 
 ```bash
 dotnet ef database update \
-  --project Yp.EventsApi.DataAccess \
-  --startup-project YP.EventsApi.Web
+  --project Yp.EventsApi.Infrastructure \
+  --startup-project Yp.EventsApi.Presentation
 ```
 
 **Откатить последнюю миграцию** (удалить файлы миграции из проекта):
 
 ```bash
 dotnet ef migrations remove \
-  --project Yp.EventsApi.DataAccess \
-  --startup-project YP.EventsApi.Web
+  --project Yp.EventsApi.Infrastructure \
+  --startup-project Yp.EventsApi.Presentation
 ```
 
 **Сгенерировать SQL-скрипт** (без применения к БД):
 
 ```bash
 dotnet ef migrations script \
-  --project Yp.EventsApi.DataAccess \
-  --startup-project YP.EventsApi.Web \
+  --project Yp.EventsApi.Infrastructure \
+  --startup-project Yp.EventsApi.Presentation \
   --output migrations.sql
 ```
 
-Пакет `Microsoft.EntityFrameworkCore.Design` подключён к `YP.EventsApi.Web` — поэтому в командах `dotnet ef` в качестве startup-проекта указывается веб-приложение, а проект с миграциями — `Yp.EventsApi.DataAccess`.
+Пакет `Microsoft.EntityFrameworkCore.Design` подключён к `Yp.EventsApi.Presentation` — поэтому в командах `dotnet ef` в качестве startup-проекта указывается веб-приложение, а проект с миграциями — `Yp.EventsApi.Infrastructure`.
 
-### Поиск событий
-Для поиска событий используется метод GET /events.
-В качестве аргументов принимает query-параметры, описанные классом EventFilter
-
-### Модель события (Event)
-В ответах API событие (модель `EventDto`) содержит поля про вместимость:
-
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `TotalSeats` | `int` | Общее количество мест на событии (вместимость). Задаётся при создании/обновлении события. |
-| `AvailableSeats` | `int` | Текущее количество доступных мест. Инициализируется значением `TotalSeats` и уменьшается при бронировании, увеличивается при отклонении (rejected) бронирования. |
-
-### Бронирования
-Через HTTP доступны следующие операции:
+## API: события
 
 | Метод | Путь | Описание |
 |-------|------|----------|
-| `POST` | `/events/{id}/book` | Создать бронирование для события с идентификатором `id`. Сначала проверяется существование события и наличие доступных мест. Ответ **202 Accepted**; в теле — `BookingDto`. Заголовок `Location` указывает на ресурс бронирования (`GET /bookings/{bookingId}`). Если событие не найдено — **404**. Если для события нет доступных мест — **409 Conflict**. |
-| `GET` | `/bookings/{id}` | Получить бронирование по идентификатору. Ответ **200 OK** с `BookingDto`. Если бронирование не найдено — **404**. |
+| `GET` | `/events` | Список событий с фильтрацией и пагинацией. Ответ **200 OK** — `PaginatedResult<EventDto>`. |
+| `GET` | `/events/{id}` | Событие по идентификатору. Ответ **200 OK** с `EventDto`. Если не найдено — **404**. |
+| `POST` | `/events` | Создать событие. Тело — `EventCreateDto`. Ответ **201 Created** с `EventDto` и заголовком `Location`. Ошибки валидации — **400**. |
+| `PUT` | `/events/{id}` | Обновить событие. Тело — `EventCreateDto`. Ответ **200 OK** с `EventDto`. Если не найдено — **404**. |
+| `DELETE` | `/events/{id}` | Удалить событие. Ответ **204 No Content**. Если не найдено — **404**. |
+| `POST` | `/events/{id}/book` | Создать бронирование для события. Ответ **202 Accepted** с `BookingDto`; заголовок `Location` указывает на `GET /bookings/{bookingId}`. Если событие не найдено — **404**. Если нет доступных мест — **409 Conflict**. |
 
-Модель ответа `BookingDto` содержит поля `Id`, `EventId`, `Status` (перечисление `BookingStatus`: `Pending`, `Confirmed`, `Rejected`).
+### Поиск и фильтрация событий
 
-Дополнительно в `IBookingService` реализованы методы `GetBookingsByStatusAsync` и `UpdateBookingStatusAsync` — они не выставлены как отдельные HTTP-эндпоинты и используются фоновой обработкой (`BookingProcessorBackgroundService`) для поиска ожидающих бронирований и смены их статуса.
+Метод `GET /events` принимает query-параметры из класса `EventFilter` (наследует `Pagination`):
 
-### Синхронизация и защита от гонок (овербукинга)
-В проекте используется `SemaphoreSlim` (семафор) как примитив синхронизации для сериализации критических секций в конкурентных сценариях.
+| Параметр | Тип | Описание |
+|----------|-----|----------|
+| `Title` | `string?` | Подстрока в названии (регистронезависимый поиск через `ILIKE`) |
+| `From` | `DateTime?` | События, у которых `StartAt >= From` |
+| `To` | `DateTime?` | События, у которых `EndAt <= To` |
+| `Page` | `int` | Номер страницы (по умолчанию `1`) |
+| `PageSize` | `int` | Размер страницы (по умолчанию `10`) |
 
-- **Где используется**:
-  - В `BookingService.CreateBookingAsync(...)` — вокруг логики «зарезервировать место + добавить бронирование в память».
-  - В `BookingProcessorBackgroundService` — вокруг операций отклонения бронирования (чтобы безопасно менять состояние бронирований/мест при параллельной обработке нескольких заявок).
-- **Зачем нужно**:
-  - Защищает *in-memory* коллекции и общий счётчик `AvailableSeats` от гонок при одновременных запросах.
-  - Гарантирует, что две параллельные попытки забронировать последнее место не «пройдут» одновременно (то есть предотвращает овербукинг).
+Ответ содержит поля `Items`, `Total`, `CurrentPage`, `PageSize`.
+
+### Модель события (`EventDto`)
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `Id` | `Guid` | Идентификатор события |
+| `Title` | `string` | Название |
+| `Description` | `string?` | Описание |
+| `StartAt` | `DateTime` | Дата и время начала |
+| `EndAt` | `DateTime` | Дата и время окончания |
+| `TotalSeats` | `int` | Общее количество мест (вместимость). Задаётся при создании/обновлении. |
+| `AvailableSeats` | `int` | Текущее количество доступных мест. Инициализируется значением `TotalSeats`, уменьшается при бронировании, увеличивается при отклонении бронирования. |
+
+## API: бронирования
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| `GET` | `/bookings/{id}` | Получить бронирование по идентификатору. Ответ **200 OK**. Если не найдено — **404**. |
+
+Модель ответа `BookingDto`:
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `Id` | `Guid` | Идентификатор бронирования |
+| `EventId` | `Guid` | Идентификатор события |
+| `Status` | `BookingStatus` | Статус: `Pending`, `Confirmed`, `Rejected` |
+| `ProcessedAt` | `DateTime?` | Время подтверждения или отклонения (заполняется фоновой обработкой) |
+
+Дополнительно в `IBookingService` реализованы методы `GetBookingsByStatusAsync`, `ConfirmBookingAsync` и `RejectBookingAsync` — они не выставлены как отдельные HTTP-эндпоинты и используются фоновой обработкой (`BookingProcessorBackgroundService`) для поиска ожидающих бронирований и смены их статуса.
+
+Фоновый сервис опрашивает очередь каждые 10 секунд: для каждого бронирования в статусе `Pending` проверяется существование события, затем через ~2 секунды бронирование подтверждается (`Confirmed`) или отклоняется (`Rejected`) с возвратом мест на событие.
+
+## Синхронизация и защита от гонок (овербукинга)
+
+Защита от овербукинга реализована на уровне PostgreSQL и доменной логики:
+
+- **`EventService.TryReserveSeats`** открывает транзакцию, читает строку события с блокировкой `SELECT ... FOR UPDATE` (`GetByIdForUpdateAsync`), вызывает `Event.TryReserveSeats` и сохраняет изменения.
+- При отсутствии мест выбрасывается `NoAvailableSeatsException` (**409 Conflict** в API).
+- **`EventService.ReleaseSeats`** используется при отклонении бронирования и также работает внутри транзакции с блокировкой строки.
+
+Параллельные запросы на резервирование сериализуются блокировкой строки в БД, а не in-memory примитивами.
 
 ### Пример сценария с овербукингом
+
 Пусть есть событие с `TotalSeats = 1` и `AvailableSeats = 1`. Два клиента почти одновременно вызывают бронирование.
 
-1) Клиент A и клиент B отправляют `POST /events/{id}/book` параллельно.
+1. Клиент A и клиент B отправляют `POST /events/{id}/book` параллельно.
+2. Ожидаемый результат:
+   - один запрос получит **202 Accepted** и создаст бронирование (`AvailableSeats = 0`);
+   - второй запрос получит **409 Conflict** с ошибкой в формате `ProblemDetails` (причина: нет доступных мест).
 
-2) Ожидаемый результат:
-- Один запрос получит **202 Accepted** и создаст бронирование (места станут `AvailableSeats = 0`).
-- Второй запрос получит **409 Conflict** с ошибкой в формате `ProblemDetails` (причина: «нет доступных мест»).
+Аналогичный сценарий покрыт интеграционным тестом `EventServiceReserveSeatsTests.TryReserveSeats_ConcurrentRequests_ShouldPreventOverbooking`.
 
-### Формат ошибок
-При работе с API все ошибки имеют формат ProblemDetails
-Расширенная информация об ошибках, если их несколько, находится в поле errors
+## Формат ошибок
+
+При работе с API ошибки возвращаются в формате [ProblemDetails](https://datatracker.ietf.org/doc/html/rfc7807).
+
+- Ошибки валидации (`FluentValidation`) — **400 Bad Request**, тело `ValidationProblemDetails` с полем `errors` (словарь «поле → массив сообщений»).
+- Сущность не найдена — **404 Not Found**.
+- Нет доступных мест — **409 Conflict**.
+- Прочие необработанные исключения — **500 Internal Server Error**.

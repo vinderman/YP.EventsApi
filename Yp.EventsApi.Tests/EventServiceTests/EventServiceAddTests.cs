@@ -1,25 +1,23 @@
-using AutoMapper;
+
 using Moq;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Services.Interfaces;
-using Yp.EventsApi.Services.Services.EventService;
-using Yp.EventsApi.Shared.Contracts;
-using Yp.EventsApi.Tests.Common;
+using Yp.EventsApi.Application.Interfaces;
+using Yp.EventsApi.Application.Models;
+using Yp.EventsApi.Application.Services.EventService;
+using Yp.EventsApi.Domain.Entities;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
 
 public class EventServiceAddTests
 {
-    private readonly IMapper _mapper = ServiceTestFactory.CreateMapper();
 
     [Fact]
     public async Task Create_AddsEventAndSavesChanges()
     {
         var eventRepository = new Mock<IEventRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
-        var service = new EventService(_mapper, eventRepository.Object, unitOfWork.Object);
+        var service = new EventService(eventRepository.Object, unitOfWork.Object);
 
-        var dto = new EventCreateDto
+        var dto = new CreateEventRequest
         {
             Title = "Test Event",
             StartAt = DateTime.UtcNow,

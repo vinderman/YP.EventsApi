@@ -1,15 +1,14 @@
 using Moq;
-using Yp.EventsApi.Services.Entities;
-using Yp.EventsApi.Services.Exceptions;
-using Yp.EventsApi.Services.Interfaces;
-using Yp.EventsApi.Services.Services.EventService;
-using Yp.EventsApi.Tests.Common;
+using Yp.EventsApi.Application.Exceptions;
+using Yp.EventsApi.Application.Interfaces;
+using Yp.EventsApi.Application.Services.EventService;
+using Yp.EventsApi.Domain.Entities;
 
 namespace Yp.EventsApi.Tests.EventServiceTests;
 
 public class EventServiceReserveSeatsTests
 {
-    private readonly IMapper _mapper = ServiceTestFactory.CreateMapper();
+    
 
     [Fact]
     public async Task TryReserveSeats_CommitsTransaction_WhenSeatAvailable()
@@ -28,7 +27,7 @@ public class EventServiceReserveSeatsTests
             .Setup(u => u.BeginTransactionAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(transaction.Object);
 
-        var service = new EventService(_mapper, eventRepository.Object, unitOfWork.Object);
+        var service = new EventService(eventRepository.Object, unitOfWork.Object);
 
         var result = await service.TryReserveSeats(eventId, 1, CancellationToken.None);
 
@@ -56,7 +55,7 @@ public class EventServiceReserveSeatsTests
             .Setup(u => u.BeginTransactionAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(transaction.Object);
 
-        var service = new EventService(_mapper, eventRepository.Object, unitOfWork.Object);
+        var service = new EventService(eventRepository.Object, unitOfWork.Object);
 
         await Assert.ThrowsAsync<NoAvailableSeatsException>(
             () => service.TryReserveSeats(eventId, 1, CancellationToken.None));
@@ -78,7 +77,7 @@ public class EventServiceReserveSeatsTests
             .Setup(u => u.BeginTransactionAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(transaction.Object);
 
-        var service = new EventService(_mapper, eventRepository.Object, unitOfWork.Object);
+        var service = new EventService(eventRepository.Object, unitOfWork.Object);
 
         await Assert.ThrowsAsync<EntityNotFoundException>(
             () => service.TryReserveSeats(Guid.NewGuid(), 1, CancellationToken.None));
@@ -89,7 +88,7 @@ public class EventServiceReserveSeatsTests
     [Fact]
     public async Task ReleaseSeats_ReturnsFalse_WhenSeatsCountIsNotPositive()
     {
-        var service = new EventService(_mapper, Mock.Of<IEventRepository>(), Mock.Of<IUnitOfWork>());
+        var service = new EventService( Mock.Of<IEventRepository>(), Mock.Of<IUnitOfWork>());
 
         var result = await service.ReleaseSeats(Guid.NewGuid(), 0, CancellationToken.None);
 
