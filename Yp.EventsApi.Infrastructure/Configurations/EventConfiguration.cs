@@ -20,7 +20,5 @@ public class EventConfiguration: IEntityTypeConfiguration<Event>
         builder.Property(e => e.TotalSeats).IsRequired().HasColumnType("smallint");
         
         builder.Property(e => e.AvailableSeats).IsRequired().HasColumnType("smallint");
-        
-        builder.HasMany(e => e.Bookings).WithOne(e => e.Event).HasForeignKey(e => e.EventId);
     }
 }

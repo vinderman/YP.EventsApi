@@ -13,10 +13,10 @@ public class UserConfiguration: IEntityTypeConfiguration<User>
         
         builder.Property(u => u.Login).IsRequired().HasMaxLength(100);
         
+        builder.HasIndex(u => u.Login).IsUnique();
+        
         builder.Property(u => u.Role).IsRequired().HasConversion<string>();
         
         builder.Property(u => u.PasswordHash).IsRequired();
-        
-        builder.HasMany(u => u.Bookings).WithOne(b => b.User).HasForeignKey(b => b.UserId);
     }
 }
