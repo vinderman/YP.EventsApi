@@ -42,6 +42,7 @@ public class BookingsController : ControllerBase
         return Ok(_mapper.Map<BookingDto>(booking));
     }
 
+    [Authorize]
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(IActionResult), StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

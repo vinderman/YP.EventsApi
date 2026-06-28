@@ -33,6 +33,7 @@ builder.Services.AddAuthentication(options =>
         {
             ValidateIssuer = true,
             NameClaimType = JwtRegisteredClaimNames.Sub,
+            RoleClaimType = "role",
             ValidIssuer = jwtSettings.Issuer,
 
             ValidateAudience = true,

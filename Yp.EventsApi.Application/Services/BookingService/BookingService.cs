@@ -87,11 +87,8 @@ public class BookingService : IBookingService
         var booking = await EnsureBookingExists(bookingId, ct);
         
         EnsureCanAccessBookingAsync(booking, userId, role, ct);
-
-        if (booking.Status == BookingStatus.Cancelled)
-        {
-            throw new DomainValidationException("Нельзя повторно отменить бронирование");
-        }
+        
+        booking.CancelBooking(booking);
 
         await _eventService.ReleaseSeats(booking.EventId, 1, ct);
         booking.Status = BookingStatus.Cancelled;

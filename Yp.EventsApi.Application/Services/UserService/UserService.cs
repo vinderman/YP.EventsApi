@@ -45,13 +45,13 @@ public class UserService: IUserService
 
         if (user == null)
         {
-            throw new EntityNotFoundException("Пользователь не найден");
+            throw new EntityNotFoundException("Введены неверные учетные данные.");
         }
 
         var isPasswordMatch = _passwordHasher.VerifyPassword(password, user.PasswordHash);
         if (!isPasswordMatch)
         {
-            throw new ForbiddenException("Введены неверные учетные данные.");
+            throw new EntityNotFoundException("Введены неверные учетные данные.");
         }
         
         

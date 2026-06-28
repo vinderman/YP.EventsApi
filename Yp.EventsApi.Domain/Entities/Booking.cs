@@ -1,4 +1,5 @@
 using Yp.EventsApi.Domain.Enums;
+using Yp.EventsApi.Domain.Exceptions;
 
 namespace Yp.EventsApi.Domain.Entities;
 
@@ -20,6 +21,14 @@ public class Booking
             CreatedAt = DateTime.UtcNow,
             UserId = userId
         };
+    }
+
+    public void CancelBooking(Booking booking)
+    {
+        if (booking.Status == BookingStatus.Cancelled)
+        {
+            throw new DomainValidationException("Нельзя повторно отменить бронирование");
+        }
     }
     public Guid Id { get; set; }
     
