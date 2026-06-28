@@ -24,7 +24,7 @@ public class BookingService : IBookingService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken cancellationToken = default)
+    public async Task<Booking> GetBookingByIdAsync(Guid bookingId, Guid userId, UserRole role, CancellationToken cancellationToken = default)
     {
         var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken);
 
@@ -33,6 +33,8 @@ public class BookingService : IBookingService
             throw new EntityNotFoundException(
                 $"Не удалось найти бронирование. Бронирование с идентификатором {bookingId} не найдено");
         }
+        
+        EnsureCanAccessBookingAsync(booking, userId, role, cancellationToken);
 
         return booking;
     }
@@ -84,7 +86,7 @@ public class BookingService : IBookingService
     {
         var booking = await EnsureBookingExists(bookingId, ct);
         
-        EnsureCanCancelBookingAsync(booking, userId, role);
+        EnsureCanAccessBookingAsync(booking, userId, role, ct);
 
         if (booking.Status == BookingStatus.Cancelled)
         {
@@ -126,13 +128,12 @@ public class BookingService : IBookingService
         eventEntity.EnsureCanAcceptBooking(DateTime.Now);
     }
 
-    private static void EnsureCanCancelBookingAsync(Booking booking, Guid userId, UserRole role,
+    private static void EnsureCanAccessBookingAsync(Booking booking, Guid userId, UserRole role,
         CancellationToken cancellationToken = default)
     {
         if (role == UserRole.Admin)
             return;
         if (booking.UserId != userId)
-            throw new ForbiddenException("Недостаточно прав для отмены бронирования");
-
+            throw new ForbiddenException("Недостаточно прав для доступа к бронированию");
     }
 }

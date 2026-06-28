@@ -74,6 +74,7 @@ public class ErrorHandlerMiddleware: ControllerBase
             NoAvailableSeatsException en => StatusCodes.Status409Conflict,
             BookingEventException en => StatusCodes.Status400BadRequest,
             BookingCountExceededException en => StatusCodes.Status409Conflict,
+            ForbiddenException en => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status500InternalServerError
         };
 

@@ -1,5 +1,6 @@
 using AutoMapper;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Yp.EventsApi.Application.Models;
 using Yp.EventsApi.Application.Services.BookingService;
@@ -59,6 +60,7 @@ public class EventsController: ControllerBase
     /// <summary>
     /// Создать событие
     /// </summary>
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -79,6 +81,7 @@ public class EventsController: ControllerBase
     /// <summary>
     /// Обновить событие
     /// </summary>
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(EventDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -99,6 +102,7 @@ public class EventsController: ControllerBase
     /// <summary>
     /// Удалить событие
     /// </summary>
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(IActionResult), StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -115,12 +119,13 @@ public class EventsController: ControllerBase
     /// <param name="id"></param>
     /// <param name="ct"></param>
     /// <returns></returns>
+    [Authorize]
     [HttpPost("{id}/book")]
     [ProducesResponseType(typeof(ActionResult<BookingDto>), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BookingDto>> BookEvent([FromRoute] Guid id, CancellationToken ct)
     {
-        var userId = Guid.Parse(HttpContext.User.Identity!.Name);
+        var userId = Guid.Parse(HttpContext.User.Identity.Name);
         var booking = await _bookingService.CreateBookingAsync(id, userId, ct);
         return AcceptedAtAction(actionName: nameof(BookingsController.GetBookingById), controllerName: "Bookings", routeValues: new { id = booking.Id }, value: _mapper.Map<BookingDto>(booking));
     }

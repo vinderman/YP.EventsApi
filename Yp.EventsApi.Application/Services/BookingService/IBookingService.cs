@@ -7,7 +7,7 @@ public interface IBookingService
 {
     public Task<Booking> CreateBookingAsync(Guid eventId, Guid userId, CancellationToken ct = default);
 
-    public Task<Booking> GetBookingByIdAsync(Guid bookingId, CancellationToken ct = default);
+    public Task<Booking> GetBookingByIdAsync(Guid bookingId, Guid userId, UserRole role, CancellationToken ct = default);
     
     public Task<List<Booking>> GetBookingsByStatusAsync(BookingStatus status, CancellationToken ct = default);
     
