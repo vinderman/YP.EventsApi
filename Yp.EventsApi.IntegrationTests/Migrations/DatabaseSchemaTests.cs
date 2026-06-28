@@ -27,7 +27,7 @@ public class DatabaseSchemaTests
         Assert.False(await context.Events.AnyAsync());
         Assert.False(await context.Bookings.AnyAsync());
 
-        context.Bookings.Add(Booking.CreateInstance(Guid.NewGuid(), Guid.NewGuid(), BookingStatus.Pending));
+        context.Bookings.Add(Booking.CreateInstance(Guid.NewGuid(), Guid.NewGuid(), BookingStatus.Pending, Guid.NewGuid()));
         await Assert.ThrowsAsync<DbUpdateException>(() => context.SaveChangesAsync());
     }
 }

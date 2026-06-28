@@ -120,7 +120,8 @@ public class EventsController: ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BookingDto>> BookEvent([FromRoute] Guid id, CancellationToken ct)
     {
-        var booking = await _bookingService.CreateBookingAsync(id, ct);
+        var userId = Guid.Parse(HttpContext.User.Identity!.Name);
+        var booking = await _bookingService.CreateBookingAsync(id, userId, ct);
         return AcceptedAtAction(actionName: nameof(BookingsController.GetBookingById), controllerName: "Bookings", routeValues: new { id = booking.Id }, value: _mapper.Map<BookingDto>(booking));
     }
 }

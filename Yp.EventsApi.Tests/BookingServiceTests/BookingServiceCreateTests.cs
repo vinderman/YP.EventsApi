@@ -27,7 +27,7 @@ public class BookingServiceCreateTests
         var unitOfWork = new Mock<IUnitOfWork>();
         var service = new BookingService(_logger, eventService.Object, bookingRepository.Object, unitOfWork.Object);
 
-        var result = await service.CreateBookingAsync(eventId);
+        var result = await service.CreateBookingAsync(eventId, Guid.NewGuid());
 
         eventService.Verify(s => s.TryReserveSeats(eventId, 1, It.IsAny<CancellationToken>()), Times.Once);
         bookingRepository.Verify(r => r.CreateAsync(It.IsAny<Booking>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -52,6 +52,6 @@ public class BookingServiceCreateTests
             Mock.Of<IUnitOfWork>());
 
         await Assert.ThrowsAsync<NoAvailableSeatsException>(
-            () => service.CreateBookingAsync(eventId));
+            () => service.CreateBookingAsync(eventId,Guid.NewGuid()));
     }
 }

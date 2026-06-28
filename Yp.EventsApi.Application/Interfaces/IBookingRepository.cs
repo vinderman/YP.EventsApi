@@ -10,4 +10,9 @@ public interface IBookingRepository
     public Task CreateAsync(Booking booking, CancellationToken cancellationToken = default);
     
     public Task<IReadOnlyList<Booking>> GetAllByStatusAsync(BookingStatus status, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Подсчитать количество активных бронирований у пользователя
+    /// </summary>
+    public Task<int> CountActiveByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
 }

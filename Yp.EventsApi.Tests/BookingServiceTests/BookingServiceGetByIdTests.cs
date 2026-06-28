@@ -17,7 +17,7 @@ public class BookingServiceGetByIdTests
     public async Task GetBookingByIdAsync_ReturnsMappedDto_WhenBookingExists()
     {
         var bookingId = Guid.NewGuid();
-        var booking = Booking.CreateInstance(bookingId, Guid.NewGuid(), BookingStatus.Pending);
+        var booking = Booking.CreateInstance(bookingId, Guid.NewGuid(), BookingStatus.Pending, Guid.NewGuid());
 
         var bookingRepository = new Mock<IBookingRepository>();
         bookingRepository

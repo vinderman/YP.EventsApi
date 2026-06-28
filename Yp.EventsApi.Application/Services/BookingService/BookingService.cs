@@ -4,17 +4,19 @@ using Yp.EventsApi.Application.Interfaces;
 using Yp.EventsApi.Application.Services.EventService;
 using Yp.EventsApi.Domain.Entities;
 using Yp.EventsApi.Domain.Enums;
+using Yp.EventsApi.Domain.Exceptions;
 
 namespace Yp.EventsApi.Application.Services.BookingService;
 
-public class BookingService: IBookingService
+public class BookingService : IBookingService
 {
     private readonly ILogger<BookingService> _logger;
     private readonly IEventService _eventService;
     private readonly IBookingRepository _bookingRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public BookingService(ILogger<BookingService> logger, IEventService eventService, IBookingRepository bookingRepository, IUnitOfWork unitOfWork)
+    public BookingService(ILogger<BookingService> logger, IEventService eventService,
+        IBookingRepository bookingRepository, IUnitOfWork unitOfWork)
     {
         _bookingRepository = bookingRepository;
         _logger = logger;
@@ -28,49 +30,71 @@ public class BookingService: IBookingService
 
         if (booking == null)
         {
-            throw new EntityNotFoundException($"Не удалось найти бронирование. Бронирование с идентификатором {bookingId} не найдено");
+            throw new EntityNotFoundException(
+                $"Не удалось найти бронирование. Бронирование с идентификатором {bookingId} не найдено");
         }
-        
+
         return booking;
     }
 
-    public async Task<Booking> CreateBookingAsync(Guid eventId, CancellationToken cancellationToken = default)
-    { 
+    public async Task<Booking> CreateBookingAsync(Guid eventId, Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureCanCreateBookingAsync(eventId, userId, cancellationToken);
+
         await _eventService.TryReserveSeats(eventId, 1, cancellationToken);
-        
-        var booking = Booking.CreateInstance(Guid.NewGuid(), eventId, BookingStatus.Pending);
-        
-        await _bookingRepository.CreateAsync(booking, cancellationToken); 
+
+        var booking = Booking.CreateInstance(Guid.NewGuid(), eventId, BookingStatus.Pending, userId);
+
+        await _bookingRepository.CreateAsync(booking, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        
+
         return booking;
     }
 
     public async Task<List<Booking>> GetBookingsByStatusAsync(BookingStatus status, CancellationToken ct)
     {
         var bookings = await _bookingRepository.GetAllByStatusAsync(status, ct);
-        
+
         return bookings.ToList();
     }
 
     public async Task ConfirmBookingAsync(Guid bookingId, Guid eventId, CancellationToken ct = default)
     {
         var booking = await EnsureBookingExists(bookingId, ct);
-        
+
         booking.Status = BookingStatus.Confirmed;
         booking.ProcessedAt = DateTime.UtcNow;
-        
+
         await _unitOfWork.SaveChangesAsync(ct);
     }
 
     public async Task RejectBookingAsync(Guid bookingId, Guid eventId, CancellationToken ct = default)
     {
         var booking = await EnsureBookingExists(bookingId);
-        
+
         await _eventService.ReleaseSeats(eventId, 1, ct);
         booking.Status = BookingStatus.Rejected;
         booking.ProcessedAt = DateTime.UtcNow;
+
+        await _unitOfWork.SaveChangesAsync(ct);
+    }
+
+    public async Task CancelBookingAsync(Guid bookingId, Guid userId, UserRole role, CancellationToken ct = default)
+    {
+        var booking = await EnsureBookingExists(bookingId, ct);
         
+        EnsureCanCancelBookingAsync(booking, userId, role);
+
+        if (booking.Status == BookingStatus.Cancelled)
+        {
+            throw new DomainValidationException("Нельзя повторно отменить бронирование");
+        }
+
+        await _eventService.ReleaseSeats(booking.EventId, 1, ct);
+        booking.Status = BookingStatus.Cancelled;
+        booking.ProcessedAt = DateTime.UtcNow;
+
         await _unitOfWork.SaveChangesAsync(ct);
     }
 
@@ -85,7 +109,30 @@ public class BookingService: IBookingService
             _logger.LogError(message);
             throw new EntityNotFoundException(message);
         }
-        
+
         return booking;
+    }
+
+    private async Task EnsureCanCreateBookingAsync(Guid eventId, Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var userBookingsCount = await _bookingRepository.CountActiveByUserIdAsync(userId, cancellationToken);
+        if (userBookingsCount >= 10)
+        {
+            throw new BookingCountExceededException();
+        }
+        
+        var eventEntity = await _eventService.GetById(eventId, cancellationToken);
+        eventEntity.EnsureCanAcceptBooking(DateTime.Now);
+    }
+
+    private static void EnsureCanCancelBookingAsync(Booking booking, Guid userId, UserRole role,
+        CancellationToken cancellationToken = default)
+    {
+        if (role == UserRole.Admin)
+            return;
+        if (booking.UserId != userId)
+            throw new ForbiddenException("Недостаточно прав для отмены бронирования");
+
     }
 }

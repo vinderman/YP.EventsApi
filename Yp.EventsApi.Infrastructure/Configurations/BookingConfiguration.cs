@@ -16,5 +16,7 @@ public class BookingConfiguration: IEntityTypeConfiguration<Booking>
         builder.Property(e => e.Status).IsRequired().HasConversion<string>();
         
         builder.Property(e => e.CreatedAt).IsRequired();
+        
+        builder.Property(e => e.UserId).ValueGeneratedNever().IsRequired();
     }
 }

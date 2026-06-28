@@ -21,7 +21,7 @@ public class BookingRepositoryTests
         var eventEntity = TestDataSeed.SeedEvent(context);
 
         var repository = new BookingRepository(context);
-        var booking = Booking.CreateInstance(Guid.NewGuid(), eventEntity.Id, BookingStatus.Pending);
+        var booking = Booking.CreateInstance(Guid.NewGuid(), eventEntity.Id, BookingStatus.Pending, Guid.NewGuid());
         var unitOfWork = new EfUnitOfWork(context);
 
         await repository.CreateAsync(booking);
@@ -55,8 +55,8 @@ public class BookingRepositoryTests
 
         var repository = new BookingRepository(context);
         var unitOfWork = new EfUnitOfWork(context);
-        var pending = Booking.CreateInstance(Guid.NewGuid(), eventEntity.Id, BookingStatus.Pending);
-        var confirmed = Booking.CreateInstance(Guid.NewGuid(), eventEntity.Id, BookingStatus.Confirmed);
+        var pending = Booking.CreateInstance(Guid.NewGuid(), eventEntity.Id, BookingStatus.Pending, Guid.NewGuid());
+        var confirmed = Booking.CreateInstance(Guid.NewGuid(), eventEntity.Id, BookingStatus.Confirmed, Guid.NewGuid());
         confirmed.Status = BookingStatus.Confirmed;
 
         await repository.CreateAsync(pending);

@@ -16,7 +16,7 @@ public class BookingServiceUpdateTests
     public async Task ConfirmBookingAsync_SetsConfirmedStatusAndProcessedAt()
     {
         var bookingId = Guid.NewGuid();
-        var booking = Booking.CreateInstance(bookingId, Guid.NewGuid(), BookingStatus.Pending);
+        var booking = Booking.CreateInstance(bookingId, Guid.NewGuid(), BookingStatus.Pending, Guid.NewGuid());
 
         var bookingRepository = new Mock<IBookingRepository>();
         bookingRepository
@@ -42,7 +42,7 @@ public class BookingServiceUpdateTests
     {
         var bookingId = Guid.NewGuid();
         var eventId = Guid.NewGuid();
-        var booking = Booking.CreateInstance(bookingId, eventId, BookingStatus.Pending);
+        var booking = Booking.CreateInstance(bookingId, eventId, BookingStatus.Pending, Guid.NewGuid());
 
         var bookingRepository = new Mock<IBookingRepository>();
         bookingRepository
