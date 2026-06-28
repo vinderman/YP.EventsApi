@@ -4,7 +4,7 @@ namespace Yp.EventsApi.Application.Interfaces;
 
 public interface IUserRepository
 {
-    Task<User> CreateUser(User user);
+    Task CreateUser(User user);
     
-    Task<User> GetUserByLogin(string login, CancellationToken cancellationToken);
+    Task<User?> GetUserByLogin(string login, CancellationToken cancellationToken);
 }

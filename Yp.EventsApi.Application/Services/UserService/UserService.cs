@@ -11,12 +11,14 @@ public class UserService: IUserService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUserRepository _userRepository;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public UserService(IPasswordHasher passwordHasher, IUserRepository userRepository, IJwtTokenGenerator jwtTokenGenerator)
+    public UserService(IPasswordHasher passwordHasher, IUserRepository userRepository, IJwtTokenGenerator jwtTokenGenerator, IUnitOfWork unitOfWork)
     {
         _passwordHasher = passwordHasher;
         _userRepository = userRepository;
         _jwtTokenGenerator = jwtTokenGenerator;
+        _unitOfWork = unitOfWork;
     }
     public async Task<bool> Register(string login, string password, UserRole? role, CancellationToken ct)
     {
@@ -32,6 +34,7 @@ public class UserService: IUserService
         
         var user = User.CreateInstance(Guid.NewGuid(), login, hashedPassword, userRole);
         await _userRepository.CreateUser(user);
+        await _unitOfWork.SaveChangesAsync();
 
         return true;
     }

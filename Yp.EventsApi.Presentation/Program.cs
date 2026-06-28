@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Yp.EventsApi.Application;
 using Yp.EventsApi.Infrastructure;
@@ -17,7 +18,8 @@ builder.Services.AddApplicationServices();
 builder.Services.AddApplicationRepositories();
 
 
-JwtSettings? jwtSettings = builder.Configuration.GetValue<JwtSettings>("Jwt");
+var jwtSettings = builder.Configuration.GetSection(nameof(JwtSettings)).Get<JwtSettings>();
+
 
 // Регистрация аутентификации с указанием схемы по умолчанию
 builder.Services.AddAuthentication(options =>
