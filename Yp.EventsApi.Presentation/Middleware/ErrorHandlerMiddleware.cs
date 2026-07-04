@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Yp.EventsApi.Application.Exceptions;
+using Yp.EventsApi.Domain.Exceptions;
 
 namespace Yp.EventsApi.Presentation.Middleware;
 
@@ -71,6 +72,9 @@ public class ErrorHandlerMiddleware: ControllerBase
         {
             EntityNotFoundException en => StatusCodes.Status404NotFound,
             NoAvailableSeatsException en => StatusCodes.Status409Conflict,
+            BookingEventException en => StatusCodes.Status400BadRequest,
+            BookingCountExceededException en => StatusCodes.Status409Conflict,
+            ForbiddenException en => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status500InternalServerError
         };
 

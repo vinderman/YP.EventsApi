@@ -1,4 +1,5 @@
 using Yp.EventsApi.Domain.Entities;
+using Yp.EventsApi.Domain.Enums;
 using Yp.EventsApi.Infrastructure;
 
 namespace Yp.EventsApi.IntegrationTests.Infrastructure;
@@ -15,6 +16,20 @@ internal static class TestDataSeed
             Event.CreateInstance(Guid.NewGuid(), "Свадьба", Utc(2026, 6, 10), Utc(2026, 6, 10), 10));
 
         dbContext.SaveChanges();
+    }
+    
+    
+    public static User SeedUser(AppDbContext dbContext, int totalSeats = 10)
+    {
+        var entity = User.CreateInstance(
+            Guid.NewGuid(),
+            "test",
+            "sadsadas",
+            UserRole.Admin);
+
+        dbContext.Users.Add(entity);
+        dbContext.SaveChanges();
+        return entity;
     }
 
     public static Event SeedEvent(AppDbContext dbContext, int totalSeats = 10)

@@ -54,6 +54,13 @@ public class Event
         return true;
     }
 
+    public void EnsureCanAcceptBooking(DateTime utcNow)
+    {
+        if (StartAt <= utcNow)
+            throw new BookingEventException(null);
+    }
+
+
     public void ReleaseSeats(int count = 1)
     {
         AvailableSeats += count;

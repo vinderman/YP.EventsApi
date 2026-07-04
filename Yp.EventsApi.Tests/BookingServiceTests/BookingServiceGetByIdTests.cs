@@ -17,7 +17,7 @@ public class BookingServiceGetByIdTests
     public async Task GetBookingByIdAsync_ReturnsMappedDto_WhenBookingExists()
     {
         var bookingId = Guid.NewGuid();
-        var booking = Booking.CreateInstance(bookingId, Guid.NewGuid(), BookingStatus.Pending);
+        var booking = Booking.CreateInstance(bookingId, Guid.NewGuid(), BookingStatus.Pending, Guid.NewGuid());
 
         var bookingRepository = new Mock<IBookingRepository>();
         bookingRepository
@@ -30,7 +30,7 @@ public class BookingServiceGetByIdTests
             bookingRepository.Object,
             Mock.Of<IUnitOfWork>());
 
-        var result = await service.GetBookingByIdAsync(bookingId);
+        var result = await service.GetBookingByIdAsync(bookingId, booking.UserId, UserRole.User);
 
         Assert.IsType<Booking>(result);
         Assert.Equal(bookingId, result.Id);
@@ -51,6 +51,6 @@ public class BookingServiceGetByIdTests
             Mock.Of<IUnitOfWork>());
 
         await Assert.ThrowsAsync<EntityNotFoundException>(
-            () => service.GetBookingByIdAsync(Guid.NewGuid()));
+            () => service.GetBookingByIdAsync(Guid.NewGuid(), Guid.NewGuid(), UserRole.User));
     }
 }
