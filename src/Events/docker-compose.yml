@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: backend
+      POSTGRES_PASSWORD: gtterfd
+      POSTGRES_DB: events
+    ports:
+      - "5434:5432"
+    volumes:
+      - events-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backend -d events"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: Events/Dockerfile
+    ports:
+      - "5133:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=events;Username=backend;Password=gtterfd
+      JwtSettings__Secret: yp-events-api-dev-secret-key-min-32-chars
+      JwtSettings__Issuer: EventsApi
+      JwtSettings__Audience: EventsApi
+      JwtSettings__ExpirationMinutes: 15
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  events-db-data:
