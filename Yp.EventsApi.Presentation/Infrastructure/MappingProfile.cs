@@ -12,6 +12,5 @@ public class MappingProfile: Profile
         CreateMap<Event, EventDto>();
         CreateMap<CreateEventRequest, EventCreateDto>().ReverseMap();
         CreateMap<UpdateEventRequest, EventCreateDto>().ReverseMap();
-        CreateMap<Booking, BookingDto>().ReverseMap();
     }
 }

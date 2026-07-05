@@ -15,9 +15,6 @@ public static class ServiceCollectionExtensions
         var connection = configuration.GetValue<string>("ConnectionStrings:DefaultConnection");
         services.Configure<JwtSettings>(configuration.GetSection(nameof(JwtSettings)));
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connection));
-        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
-        services.AddScoped<IPasswordHasher, PasswordHasher>();
-        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
 
         return services;
@@ -26,8 +23,6 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApplicationRepositories(this IServiceCollection services)
     {
         services.AddScoped<IEventRepository, EventRepository>();
-        services.AddScoped<IBookingRepository, BookingRepository>();
-        services.AddScoped<IUserRepository, UserRepository>();
         return services;
     }
 }
