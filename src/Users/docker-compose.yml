@@ -28,9 +28,17 @@ services:
       JwtSettings__Issuer: EventsApi
       JwtSettings__Audience: EventsApi
       JwtSettings__ExpirationMinutes: 15
+      KafkaSettings__BootstrapServers: kafka:29092
+    networks:
+      - default
+      - yp-events-api
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   users-db-data:
+
+networks:
+  yp-events-api:
+    external: true

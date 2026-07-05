@@ -4,6 +4,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Shared.Domain.Enums;
 using Shared.Exceptions;
+using Shared.Messages;
 using Shared.UnitOfWork;
 
 namespace Application.Services.BookingService;
@@ -13,13 +14,15 @@ public class BookingService : IBookingService
     private readonly ILogger<BookingService> _logger;
     private readonly IBookingRepository _bookingRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICreateBookingProducer _createBookingProducer;
 
     public BookingService(ILogger<BookingService> logger,
-        IBookingRepository bookingRepository, IUnitOfWork unitOfWork)
+        IBookingRepository bookingRepository, IUnitOfWork unitOfWork, ICreateBookingProducer createBookingProducer)
     {
         _bookingRepository = bookingRepository;
         _logger = logger;
         _unitOfWork = unitOfWork;
+        _createBookingProducer = createBookingProducer;
     }
 
     public async Task<Booking> GetBookingByIdAsync(Guid bookingId, Guid userId, UserRole role, CancellationToken cancellationToken = default)
@@ -41,15 +44,18 @@ public class BookingService : IBookingService
         CancellationToken cancellationToken = default)
     {
         await EnsureCanCreateBookingAsync(userId, cancellationToken);
-        // await EnsureCanCreateBookingAsync(eventId, userId, cancellationToken);
-
-        // TODO (Kafka): зарезервировать место на событии через сервис Events
-        // await _eventService.TryReserveSeats(eventId, 1, cancellationToken);
-
         var booking = Booking.CreateInstance(Guid.NewGuid(), eventId, BookingStatus.Pending, userId);
 
         await _bookingRepository.CreateAsync(booking, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
+        await _createBookingProducer.Produce("create-booking", new CreateBooking
+        {
+            EventId = booking.EventId,
+            BookingId = booking.Id,
+            UserId = booking.UserId
+        });
+        
 
         return booking;
     }

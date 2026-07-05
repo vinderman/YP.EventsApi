@@ -1,7 +1,8 @@
 using System.Text;
-using Application.Services.BackgroundServices;
+using Application.Interfaces;
 using Application.Services.BookingService;
 using Infrastructure;
+using Infrastructure.Kafka;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -13,9 +14,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddPresentationServices();
 builder.Services.AddScoped<IBookingService, BookingService>();
-builder.Services.AddHostedService<BookingProcessorBackgroundService>();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationRepositories();
+
+builder.Services.AddSingleton<ICreateBookingProducer, CreateBookingProducer>();
 
 var jwtSettings = builder.Configuration.GetSection(nameof(JwtSettings)).Get<JwtSettings>();
 // Регистрация аутентификации с указанием схемы по умолчанию
