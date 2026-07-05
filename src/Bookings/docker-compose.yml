@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: backend
+      POSTGRES_PASSWORD: gtterfd
+      POSTGRES_DB: bookings
+    ports:
+      - "5433:5432"
+    volumes:
+      - bookings-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backend -d bookings"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: Bookings/Dockerfile
+    ports:
+      - "5140:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=db;Port=5432;Database=bookings;Username=backend;Password=gtterfd
+      JwtSettings__Secret: yp-events-api-dev-secret-key-min-32-chars
+      JwtSettings__Issuer: EventsApi
+      JwtSettings__Audience: EventsApi
+      JwtSettings__ExpirationMinutes: 15
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  bookings-db-data:
