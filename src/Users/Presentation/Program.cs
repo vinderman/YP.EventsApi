@@ -1,22 +1,18 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using Application.Services.UserService;
+using Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using Yp.EventsApi.Application;
-using Yp.EventsApi.Infrastructure;
-using Yp.EventsApi.Infrastructure.Options;
-using Yp.EventsApi.Presentation.Infrastructure;
-using Yp.EventsApi.Presentation.Middleware;
+using Presentation.Infrastructure;
+using Shared.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddPresentationServices();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddApplicationServices();
 builder.Services.AddApplicationRepositories();
-
 
 var jwtSettings = builder.Configuration.GetSection(nameof(JwtSettings)).Get<JwtSettings>();
 // Регистрация аутентификации с указанием схемы по умолчанию
@@ -53,17 +49,15 @@ if (builder.Environment.IsDevelopment())
         options.ValidateOnBuild = true;
     });
 }
-
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
-} 
+}
 
-app.UseMiddleware<ErrorHandlerMiddleware>();
-
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -72,7 +66,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
