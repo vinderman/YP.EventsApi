@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Application.Interfaces;
 using Confluent.Kafka;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Shared.Messages;
 using Shared.Options;
@@ -23,7 +22,7 @@ public class CreateBookingProducer: ICreateBookingProducer, IDisposable
         _producer = new ProducerBuilder<string, string>(config).Build();
     }
     
-    public async Task Produce(string topic, CreateBooking message)
+    public async Task Produce(string topic, BookingConfirmed message)
     {
         await _producer.ProduceAsync(topic, new Message<string, string>
         {

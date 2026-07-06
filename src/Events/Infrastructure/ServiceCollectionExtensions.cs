@@ -14,8 +14,11 @@ public static class ServiceCollectionExtensions
     {
         var connection = configuration.GetValue<string>("ConnectionStrings:DefaultConnection");
         services.Configure<JwtSettings>(configuration.GetSection(nameof(JwtSettings)));
+        services.Configure<KafkaSettings>(configuration.GetSection(nameof(KafkaSettings)));
         services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connection));
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+
+        services.AddHostedService<ConfirmBookingConsumer>();
 
         return services;
     }

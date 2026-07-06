@@ -49,7 +49,7 @@ public class BookingService : IBookingService
         await _bookingRepository.CreateAsync(booking, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         
-        await _createBookingProducer.Produce("create-booking", new CreateBooking
+        await _createBookingProducer.Produce(KafkaTopics.ConfirmBooking, new BookingConfirmed
         {
             EventId = booking.EventId,
             BookingId = booking.Id,

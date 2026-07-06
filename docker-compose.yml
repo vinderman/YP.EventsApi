@@ -100,6 +100,7 @@ services:
       JwtSettings__Audience: EventsApi
       JwtSettings__ExpirationMinutes: 15
       KafkaSettings__BootstrapServers: kafka:29092
+      KafkaSettings__ConsumerGroup: events-service
     depends_on:
       events-db:
         condition: service_healthy
