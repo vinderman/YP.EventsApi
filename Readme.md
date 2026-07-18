@@ -1,34 +1,114 @@
 # YP.EventsApi
 
-REST API для управления событиями и бронированиями мест. Проект построен на **.NET 8** и **PostgreSQL** (EF Core).
+Распределённая система для управления событиями и бронированиями мест. Три независимых микросервиса на **.NET 8** и **PostgreSQL** (EF Core), асинхронное взаимодействие через **Apache Kafka**.
 
-## Структура решения
+## Состав системы
 
-| Проект | Назначение |
-|--------|------------|
-| `Yp.EventsApi.Domain` | Доменные сущности (`Event`, `Booking`), перечисления и доменные исключения |
-| `Yp.EventsApi.Application` | Сервисы, интерфейсы репозиториев, модели запросов и фильтров |
-| `Yp.EventsApi.Infrastructure` | EF Core (`AppDbContext`), репозитории, миграции, `UnitOfWork` |
-| `Yp.EventsApi.Presentation` | ASP.NET Core Web API: контроллеры, middleware, Swagger |
-| `Yp.EventsApi.Tests` | Юнит-тесты сервисов (зависимости подменяются через Moq) |
-| `Yp.EventsApi.IntegrationTests` | Интеграционные тесты репозиториев и сервисов с реальной PostgreSQL |
+| Сервис | Каталог | Назначение | HTTP-порт | База данных | Порт БД |
+|--------|---------|------------|-----------|-------------|---------|
+| **Users** | `src/Users` | Регистрация пользователей, выдача JWT | 5139 | PostgreSQL `users` | 5432 |
+| **Events** | `src/Events` | CRUD событий, резервирование мест | 5133 | PostgreSQL `events` | 5434 |
+| **Bookings** | `src/Bookings` | Создание и отмена бронирований | 5140 | PostgreSQL `bookings` | 5433 |
 
-## Запуск проекта
+Каждый сервис — отдельное решение со слоями Domain, Application, Infrastructure и Presentation. Общие типы сообщений, исключения и настройки — в `src/Shared`.
 
-**Требования:** .NET 8 SDK, запущенный экземпляр PostgreSQL.
+Дополнительная инфраструктура (описана в `docker-compose.yml`):
 
-1. Настройте строку подключения в `Yp.EventsApi.Presentation/appsettings.Development.json` (`ConnectionStrings:DefaultConnection`).
+| Компонент | Порт | Назначение |
+|-----------|------|------------|
+| Apache Kafka | 9092 | Брокер сообщений |
+| Kafka UI | 8080 | Веб-интерфейс для просмотра топиков |
 
-2. Соберите и запустите приложение:
+## Поток данных BookingConfirmed
+
+При создании бронирования сервисы обмениваются событием через топик Kafka `confirm-booking`.
+
+### Кто публикует
+
+**bookings-api** — при вызове `POST /bookings` сервис `BookingService` создаёт бронирование со статусом `Pending` в БД `bookings` и публикует сообщение `BookingConfirmed` через `CreateBookingProducer` в топик `confirm-booking`.
+
+Формат сообщения (`src/Shared/Messages/BookingConfirmed.cs`):
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `EventId` | `Guid` | Идентификатор события |
+| `BookingId` | `Guid` | Идентификатор бронирования |
+| `UserId` | `Guid` | Идентификатор пользователя |
+
+Ключ сообщения в Kafka — `EventId` (все бронирования одного события попадают в одну партицию).
+
+### Кто подписан
+
+**events-api** — фоновый сервис `ConfirmBookingConsumer` подписан на топик `confirm-booking` в consumer-группе `events-service`.
+
+### Что происходит при получении
+
+1. Сообщение десериализуется в `BookingConfirmed`.
+2. Вызывается `EventService.TryReserveSeats(eventId, 1)` — транзакция с блокировкой строки события (`SELECT FOR UPDATE`) и уменьшением `AvailableSeats`.
+3. Офсет коммитится вручную (семантика **at-least-once**):
+
+| Ситуация | Действие |
+|----------|----------|
+| Место успешно зарезервировано | Офсет сохраняется |
+| `NoAvailableSeatsException` — нет мест | Сообщение считается обработанным, офсет сохраняется |
+| `EntityNotFoundException` — событие не найдено | Сообщение считается обработанным, офсет сохраняется |
+| Ошибка десериализации JSON | Сообщение пропускается, офсет сохраняется |
+| Прочая техническая ошибка | Офсет **не** коммитится — сообщение будет доставлено повторно |
+
+## Запуск
+
+### Вариант 1: Docker Compose (рекомендуется)
+
+Из корня репозитория:
 
 ```bash
-dotnet build
-dotnet run --project Yp.EventsApi.Presentation
+docker compose up --build
 ```
 
-Профили запуска (`http`, `https`) уже описаны в `Yp.EventsApi.Presentation/Properties/launchSettings.json`. По умолчанию API доступен на `http://localhost:5133`, Swagger — на [http://localhost:5133/swagger/index.html](http://localhost:5133/swagger/index.html).
+Поднимаются Kafka (с автосозданием топика `confirm-booking`), Kafka UI, три экземпляра PostgreSQL и три API-сервиса. После старта:
 
-При старте приложения миграции применяются автоматически (`db.Database.Migrate()` в `Program.cs`).
+| Сервис | Swagger UI |
+|--------|------------|
+| Users API | [http://localhost:5139/swagger](http://localhost:5139/swagger) |
+| Events API | [http://localhost:5133/swagger](http://localhost:5133/swagger) |
+| Bookings API | [http://localhost:5140/swagger](http://localhost:5140/swagger) |
+| Kafka UI | [http://localhost:8080](http://localhost:8080) |
+
+Остановка:
+
+```bash
+docker compose down
+```
+
+Данные БД сохраняются в Docker volumes (`users-db-data`, `events-db-data`, `bookings-db-data`).
+
+### Вариант 2: Локальная разработка
+
+**Требования:** .NET 8 SDK, Docker.
+
+1. Запустите инфраструктуру (Kafka и базы данных):
+
+```bash
+docker compose up -d kafka kafka-init kafka-ui users-db events-db bookings-db
+```
+
+Либо только Kafka:
+
+```bash
+docker compose -f docker-compose.kafka.yml up -d
+```
+
+2. Проверьте строки подключения в `appsettings.Development.json` каждого сервиса. Для локального запуска с контейнерами из `docker-compose.yml` используйте порты из таблицы [Состав системы](#состав-системы); для Kafka — `localhost:9092`.
+
+3. Запустите сервисы (в отдельных терминалах):
+
+```bash
+dotnet run --project src/Users/Presentation
+dotnet run --project src/Events/Presentation
+dotnet run --project src/Bookings/Presentation
+```
+
+Миграции EF Core применяются автоматически при старте каждого сервиса (`db.Database.Migrate()` в `Program.cs`).
 
 ## Аутентификация и авторизация
 
@@ -55,9 +135,9 @@ API использует **JWT Bearer**-аутентификацию. Токен
 | `POST` | `/events` | Только `Admin` |
 | `PUT` | `/events/{id}` | Только `Admin` |
 | `DELETE` | `/events/{id}` | Только `Admin` |
-| `POST` | `/events/{id}/book` | Любой аутентифицированный пользователь |
-| `GET` | `/bookings/{id}` | Аутентифицированный пользователь: своя бронь; `Admin` — любая |
-| `DELETE` | `/bookings/{id}` | Владелец брони или `Admin` |
+| `POST` | `/bookings?eventId={id}` (bookings-api) | Любой аутентифицированный пользователь |
+| `GET` | `/bookings/{id}` (bookings-api) | Аутентифицированный пользователь: своя бронь; `Admin` — любая |
+| `DELETE` | `/bookings/{id}` (bookings-api) | Владелец брони или `Admin` |
 
 При попытке доступа к чужой брони пользователь с ролью `User` получит **403 Forbidden**. Запросы без токена к защищённым эндпоинтам — **401 Unauthorized**.
 
@@ -99,9 +179,9 @@ export JwtSettings__Secret="<ваш-безопасный-секрет>"
 
 ### Получение JWT-токена через Swagger
 
-1. Запустите API и откройте Swagger UI: [http://localhost:5133/swagger/index.html](http://localhost:5133/swagger/index.html).
+1. Запустите сервисы (см. [Запуск](#запуск)). Для регистрации и входа откройте Swagger **Users API**: [http://localhost:5139/swagger](http://localhost:5139/swagger).
 
-2. **Зарегистрируйте пользователя** (если ещё нет учётной записи): эндпоинт `POST /users`, тело запроса:
+2. **Зарегистрируйте пользователя** (если ещё нет учётной записи): эндпоинт `POST /users` на **users-api**, тело запроса:
 
    ```json
    {
@@ -220,7 +300,7 @@ dotnet ef migrations script \
 
 ## API: события
 
-Большинство операций с событиями доступны без аутентификации; создание, изменение и удаление — только для роли `Admin`. Бронирование требует JWT-токен (см. [Аутентификация и авторизация](#аутентификация-и-авторизация)).
+Эндпоинты обслуживает **events-api** (`http://localhost:5133`). Большинство операций доступны без аутентификации; создание, изменение и удаление — только для роли `Admin`.
 
 | Метод | Путь | Доступ | Описание |
 |-------|------|--------|----------|
@@ -229,7 +309,8 @@ dotnet ef migrations script \
 | `POST` | `/events` | `Admin` | Создать событие. Тело — `EventCreateDto`. Ответ **201 Created** с `EventDto` и заголовком `Location`. Ошибки валидации — **400**. |
 | `PUT` | `/events/{id}` | `Admin` | Обновить событие. Тело — `EventCreateDto`. Ответ **200 OK** с `EventDto`. Если не найдено — **404**. |
 | `DELETE` | `/events/{id}` | `Admin` | Удалить событие. Ответ **204 No Content**. Если не найдено — **404**. |
-| `POST` | `/events/{id}/book` | Аутентификация | Создать бронирование для события. Ответ **202 Accepted** с `BookingDto`; заголовок `Location` указывает на `GET /bookings/{bookingId}`. Если событие не найдено — **404**. Если нет доступных мест — **409 Conflict**. Если событие уже началось — **400 Bad Request**. Если у пользователя 10 активных броней — **409 Conflict**. |
+
+Бронирование выполняется через **bookings-api** (`POST /bookings?eventId={id}`), см. раздел [API: бронирования](#api-бронирования).
 
 ### Поиск и фильтрация событий
 
@@ -259,10 +340,11 @@ dotnet ef migrations script \
 
 ## API: бронирования
 
-Все эндпоинты требуют JWT-токен. Пользователь с ролью `User` работает только со своими бронированиями; `Admin` имеет доступ ко всем.
+Эндпоинты обслуживает **bookings-api** (`http://localhost:5140`). Все запросы требуют JWT-токен (получить на **users-api**). Пользователь с ролью `User` работает только со своими бронированиями; `Admin` имеет доступ ко всем.
 
 | Метод | Путь | Описание |
 |-------|------|----------|
+| `POST` | `/bookings?eventId={id}` | Создать бронирование. Ответ **202 Accepted** с `BookingDto`. После сохранения в БД публикуется событие `BookingConfirmed` в Kafka; резервирование места выполняет **events-api** (см. [Поток данных BookingConfirmed](#поток-данных-bookingconfirmed)). Если у пользователя 10 активных броней — **409 Conflict**. |
 | `GET` | `/bookings/{id}` | Получить бронирование по идентификатору. Ответ **200 OK**. Если не найдено — **404**. Если нет прав — **403 Forbidden**. |
 | `DELETE` | `/bookings/{id}` | Отменить бронирование. Ответ **204 No Content**. Если не найдено — **404**. Если нет прав — **403 Forbidden**. |
 
@@ -275,9 +357,7 @@ dotnet ef migrations script \
 | `Status` | `BookingStatus` | Статус: `Pending`, `Confirmed`, `Rejected` |
 | `ProcessedAt` | `DateTime?` | Время подтверждения или отклонения (заполняется фоновой обработкой) |
 
-Дополнительно в `IBookingService` реализованы методы `GetBookingsByStatusAsync`, `ConfirmBookingAsync` и `RejectBookingAsync` — они не выставлены как отдельные HTTP-эндпоинты и используются фоновой обработкой (`BookingProcessorBackgroundService`) для поиска ожидающих бронирований и смены их статуса.
-
-Фоновый сервис опрашивает очередь каждые 10 секунд: для каждого бронирования в статусе `Pending` проверяется существование события, затем через ~2 секунды бронирование подтверждается (`Confirmed`) или отклоняется (`Rejected`) с возвратом мест на событие.
+Дополнительно в `IBookingService` реализованы методы `GetBookingsByStatusAsync`, `ConfirmBookingAsync` и `RejectBookingAsync` — они не выставлены как HTTP-эндпоинты и зарезервированы для дальнейшей обработки статусов бронирования.
 
 ## Синхронизация и защита от гонок (овербукинга)
 
@@ -293,7 +373,7 @@ dotnet ef migrations script \
 
 Пусть есть событие с `TotalSeats = 1` и `AvailableSeats = 1`. Два клиента почти одновременно вызывают бронирование.
 
-1. Клиент A и клиент B отправляют `POST /events/{id}/book` параллельно.
+1. Клиент A и клиент B отправляют `POST /bookings?eventId={id}` параллельно.
 2. Ожидаемый результат:
    - один запрос получит **202 Accepted** и создаст бронирование (`AvailableSeats = 0`);
    - второй запрос получит **409 Conflict** с ошибкой в формате `ProblemDetails` (причина: нет доступных мест).
