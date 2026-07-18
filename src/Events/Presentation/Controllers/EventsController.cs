@@ -118,10 +118,10 @@ public class EventsController : ControllerBase
     /// </summary>
     [HttpGet("topEvents")]
     [ProducesResponseType(typeof(IReadOnlyList<EventDto>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<EventDto>> GetTopEvents(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<EventDto>>> GetTopEvents(CancellationToken cancellationToken)
     {
-        var eventById = await _eventService.GetTopSelledEvents(10, cancellationToken);
+        var events = await _eventService.GetTopSelledEvents(10, cancellationToken);
 
-        return Ok(_mapper.Map<EventDto>(eventById));
+        return Ok(_mapper.Map<IEnumerable<EventDto>>(events));
     }
 }

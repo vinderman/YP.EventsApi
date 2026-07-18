@@ -1,6 +1,6 @@
-using System.Text.Json;
 using Application.Interfaces;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace Infrastructure;
@@ -21,7 +21,7 @@ public class RedisCache: ICacheService
             var value = await _db.StringGetAsync(key);
             if (!value.HasValue)
                 return null;
-            return JsonSerializer.Deserialize<T>(value!);
+            return JsonConvert.DeserializeObject<T>(value);
         }
         catch (RedisException ex)
         {
@@ -40,7 +40,7 @@ public class RedisCache: ICacheService
         {
             await _db.StringSetAsync(
                 key,
-                JsonSerializer.Serialize(value),
+                JsonConvert.SerializeObject(value),
                 expiration ?? TimeSpan.FromDays(1));
         }
         catch (Exception ex) when (ex is RedisException or RedisTimeoutException)
