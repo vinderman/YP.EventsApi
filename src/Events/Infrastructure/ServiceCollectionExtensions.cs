@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.Options;
 using Shared.UnitOfWork;
+using StackExchange.Redis;
 
 namespace Infrastructure;
 
@@ -19,6 +20,23 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
         services.AddHostedService<ConfirmBookingConsumer>();
+
+        var redisSettings = configuration.GetSection(nameof(RedisSettings)).Get<RedisSettings>();
+        
+        var options = new ConfigurationOptions
+        {
+            EndPoints = { redisSettings.Server },
+            Password = redisSettings.Password,
+            ConnectTimeout = 5000,
+            SyncTimeout = 3000,
+            AbortOnConnectFail = false,
+        };
+        
+        services.AddSingleton<IConnectionMultiplexer>(
+            ConnectionMultiplexer.Connect(options)
+        );
+
+        services.AddSingleton<ICacheService, RedisCache>();
 
         return services;
     }

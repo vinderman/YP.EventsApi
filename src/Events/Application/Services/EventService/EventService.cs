@@ -13,11 +13,13 @@ public class EventService : IEventService
 {
     private readonly IEventRepository _eventRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cacheService;
 
-    public EventService(IEventRepository eventRepository, IUnitOfWork unitOfWork)
+    public EventService(IEventRepository eventRepository, IUnitOfWork unitOfWork, ICacheService cacheService)
     {
         _eventRepository = eventRepository;
         _unitOfWork = unitOfWork;
+        _cacheService = cacheService;
     }
 
     public async Task<PaginatedResult<Event>> GetAll(EventFilter filter, CancellationToken cancellationToken = default)
@@ -35,12 +37,22 @@ public class EventService : IEventService
 
     public async Task<Event> GetById(Guid id, CancellationToken cancellationToken = default)
     {
+        var cacheKey = CacheKeys.EventById(id);
+        var eventFromCache = await _cacheService.GetByKey<Event>(cacheKey);
+        if (eventFromCache != null)
+        {
+            return eventFromCache;
+        }
+        
         var result = await _eventRepository.GetByIdAsync(id, cancellationToken);
 
         if (result == null)
         {
             throw new EntityNotFoundException($"Не удалось найти событие. Событие с идентификатором {id} не найдено");
         }
+        
+        
+        await _cacheService.Set(cacheKey, result, TimeSpan.FromMinutes(10));
 
         return result;
     }
@@ -77,6 +89,8 @@ public class EventService : IEventService
         existingEvent.Description = eventUpdateRequest.Description;
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
+        await _cacheService.Set(CacheKeys.EventById(eventId), existingEvent, TimeSpan.FromMinutes(10));
 
         return existingEvent;
     }
@@ -103,6 +117,8 @@ public class EventService : IEventService
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        
+        await _cacheService.Set(CacheKeys.EventById(eventId), currentEvent, TimeSpan.FromMinutes(10));
 
         return true;
     }
@@ -127,6 +143,8 @@ public class EventService : IEventService
         currentEvent.ReleaseSeats(seatsCount);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        
+        await _cacheService.Set(CacheKeys.EventById(eventId), currentEvent, TimeSpan.FromMinutes(10));
 
         return true;
     }
@@ -142,5 +160,22 @@ public class EventService : IEventService
 
         _eventRepository.Remove(eventToDelete);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+        
+        await _cacheService.Delete(CacheKeys.EventById(eventId));
+    }
+
+    public async Task<IReadOnlyList<Event>> GetTopSelledEvents(int count, CancellationToken cancellationToken)
+    {
+        var cacheKey = CacheKeys.TopSoldEvents;
+        var cachedValue = await _cacheService.GetByKey<IReadOnlyList<Event>>(cacheKey);
+        if (cachedValue != null)
+        {
+            return cachedValue;
+        }
+
+        var topEvents = await _eventRepository.GetTopSelledEvents(count, cancellationToken);
+        
+        await _cacheService.Set(cacheKey, topEvents, TimeSpan.FromMinutes(10));
+        return topEvents;
     }
 }
