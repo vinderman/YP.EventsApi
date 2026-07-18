@@ -1,5 +1,6 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Presentation", "Presentation\Presentation.csproj", "{B1C2838B-6D7C-4D01-848F-4DEB02F471AE}"
 	ProjectSection(ProjectDependencies) = postProject
 		{70BD0CCA-99D5-4F98-8899-1ED2ECEE20F2} = {70BD0CCA-99D5-4F98-8899-1ED2ECEE20F2}
@@ -19,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "Application\
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "..\Shared\Shared.csproj", "{33791FAC-48BA-4971-8D93-C1391151480D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests", "Tests\Tests.csproj", "{2DC91963-F30C-43C4-AE8D-0EED5DD3360D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -46,5 +49,9 @@ Global
 		{33791FAC-48BA-4971-8D93-C1391151480D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{33791FAC-48BA-4971-8D93-C1391151480D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{33791FAC-48BA-4971-8D93-C1391151480D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2DC91963-F30C-43C4-AE8D-0EED5DD3360D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2DC91963-F30C-43C4-AE8D-0EED5DD3360D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2DC91963-F30C-43C4-AE8D-0EED5DD3360D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2DC91963-F30C-43C4-AE8D-0EED5DD3360D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
