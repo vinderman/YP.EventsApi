@@ -19,4 +19,12 @@ public interface IEventRepository
     Task AddAsync(Event createEvent, CancellationToken cancellationToken);
 
     void Remove(Event entity);
+    
+    /// <summary>
+    /// Возвращает n событий с самым высоким процентом выкупленных мест
+    /// </summary>
+    /// <param name="count"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<IReadOnlyList<Event>> GetTopSelledEvents(int count, CancellationToken cancellationToken);
 }

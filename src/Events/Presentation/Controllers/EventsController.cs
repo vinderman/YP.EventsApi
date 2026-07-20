@@ -112,4 +112,16 @@ public class EventsController : ControllerBase
 
         return NoContent();
     }
+    
+    /// <summary>
+    /// Получить n самых продаваемых событий
+    /// </summary>
+    [HttpGet("top")]
+    [ProducesResponseType(typeof(IReadOnlyList<EventDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<EventDto>>> GetTopEvents(CancellationToken cancellationToken)
+    {
+        var events = await _eventService.GetTopSelledEvents(10, cancellationToken);
+
+        return Ok(_mapper.Map<IEnumerable<EventDto>>(events));
+    }
 }
