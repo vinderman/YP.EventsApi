@@ -116,7 +116,7 @@ public class EventsController : ControllerBase
     /// <summary>
     /// Получить n самых продаваемых событий
     /// </summary>
-    [HttpGet("topEvents")]
+    [HttpGet("top")]
     [ProducesResponseType(typeof(IReadOnlyList<EventDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<EventDto>>> GetTopEvents(CancellationToken cancellationToken)
     {

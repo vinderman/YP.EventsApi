@@ -67,6 +67,6 @@ public class EventRepository : IEventRepository
 
     public async Task<IReadOnlyList<Event>> GetTopSelledEvents(int count, CancellationToken cancellationToken)
     {
-       return await _dbContext.Events.OrderByDescending(e => (e.TotalSeats - e.AvailableSeats) / e.TotalSeats).Take(count).ToListAsync(cancellationToken);
+       return await _dbContext.Events.OrderByDescending(e => (e.TotalSeats - e.AvailableSeats) / (double)e.TotalSeats).Take(count).ToListAsync(cancellationToken);
     }
 }
